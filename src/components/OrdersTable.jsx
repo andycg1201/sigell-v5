@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useSelection } from '../contexts/SelectionContext';
+import ReassignmentHistory from './ReassignmentHistory';
 
 const OrdersTable = ({ orders = [], onAddOrder }) => {
-  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const { selectedOrderId, selectOrder } = useSelection();
   const [newOrder, setNewOrder] = useState({
     cliente: '',
     domicilio: '',
@@ -9,11 +11,11 @@ const OrdersTable = ({ orders = [], onAddOrder }) => {
     qse: false
   });
   
-  // Filtrar solo pedidos pendientes (sin unidad asignada)
-  const pendingOrders = orders.filter(order => !order.unidad);
+  // Mostrar todos los pedidos (pendientes y asignados)
+  const allOrders = orders;
 
   const handleRowClick = (orderId) => {
-    setSelectedOrderId(orderId);
+    selectOrder(orderId);
   };
 
   const handleNewOrderChange = (field, value) => {
@@ -92,14 +94,14 @@ const OrdersTable = ({ orders = [], onAddOrder }) => {
             </tr>
           </thead>
           <tbody>
-            {pendingOrders.length === 0 ? (
+            {allOrders.length === 0 ? (
               <tr>
                 <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                  No hay pedidos pendientes
+                  No hay pedidos
                 </td>
               </tr>
             ) : (
-              pendingOrders.map((order) => (
+              allOrders.map((order) => (
                 <tr 
                   key={order.id} 
                   className={getRowClass(order)}
@@ -122,7 +124,10 @@ const OrdersTable = ({ orders = [], onAddOrder }) => {
                   </td>
                   <td className={getUnidadClass(order)}>
                     {order.unidad ? (
-                      <span className="unidad-box assigned">{order.unidad}</span>
+                      <span className="unidad-box assigned">
+                        {order.unidad}
+                        <ReassignmentHistory order={order} />
+                      </span>
                     ) : (
                       <span className="unidad-box pending">Sin asignar</span>
                     )}

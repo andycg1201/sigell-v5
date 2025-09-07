@@ -136,6 +136,42 @@ export const incrementTaxiCounter = async (taxiId) => {
   }
 };
 
+export const decrementTaxiCounter = async (taxiId) => {
+  try {
+    console.log('Firebase: Decrementando contador para taxi:', taxiId);
+    const today = new Date().toISOString().split('T')[0];
+    const docRef = doc(db, 'contadores', 'diarios');
+    const docSnap = await getDoc(docRef);
+    
+    let contadores = {};
+    if (docSnap.exists()) {
+      contadores = docSnap.data();
+    }
+    
+    if (!contadores[today]) {
+      contadores[today] = {};
+    }
+    
+    if (!contadores[today][taxiId]) {
+      contadores[today][taxiId] = 0;
+    }
+    
+    // Solo decrementar si es mayor a 0
+    if (contadores[today][taxiId] > 0) {
+      contadores[today][taxiId] -= 1;
+    }
+    
+    console.log('Firebase: Nuevo valor del contador:', contadores[today][taxiId]);
+    
+    await setDoc(docRef, contadores);
+    console.log('Firebase: Contador guardado exitosamente');
+    return contadores[today][taxiId];
+  } catch (error) {
+    console.error('Error decrementando contador:', error);
+    throw error;
+  }
+};
+
 // Función para alternar estado de un taxi
 export const toggleTaxiStatus = async (taxiId, checkboxMarcado) => {
   try {

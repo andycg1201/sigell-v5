@@ -1,8 +1,10 @@
 import React from 'react';
 import { useTaxis } from '../contexts/TaxisContext';
+import { useSelection } from '../contexts/SelectionContext';
 
-const TaxiButton = ({ taxi }) => {
-  const { counters, incrementCounter, toggleStatus } = useTaxis();
+const TaxiButton = ({ taxi, onAssignUnit, orders }) => {
+  const { counters, incrementCounter, decrementCounter, toggleStatus } = useTaxis();
+  const { selectedOrderId, clearSelection } = useSelection();
   const counter = counters[taxi.id] || 0;
   
   // Determinar si la fila debe ser resaltada (filas 1, 3, 5)
@@ -16,7 +18,32 @@ const TaxiButton = ({ taxi }) => {
 
   const handleButtonClick = async () => {
     console.log('Botón clickeado:', taxi.numero, 'checkboxMarcado:', taxi.checkboxMarcado);
+    
     if (!taxi.checkboxMarcado) {
+      // Si hay una fila seleccionada, asignar unidad
+      if (selectedOrderId) {
+        console.log('Asignando unidad', taxi.numero, 'al pedido', selectedOrderId);
+        
+        // Buscar el pedido seleccionado para ver si ya tiene unidad
+        const selectedOrder = orders.find(order => order.id === selectedOrderId);
+        
+        // Si ya tiene unidad asignada, decrementar contador del taxi anterior
+        if (selectedOrder && selectedOrder.unidad) {
+          const previousTaxiId = parseInt(selectedOrder.unidad);
+          console.log('Reasignación: decrementando taxi', previousTaxiId);
+          decrementCounter(previousTaxiId);
+        }
+        
+        // Incrementar contador del nuevo taxi
+        incrementCounter(taxi.id);
+        
+        // Asignar unidad
+        onAssignUnit(selectedOrderId, taxi.numero);
+        clearSelection();
+        return;
+      }
+      
+      // Si no hay fila seleccionada, incrementar contador
       try {
         console.log('Incrementando contador para taxi:', taxi.id);
         await incrementCounter(taxi.id);

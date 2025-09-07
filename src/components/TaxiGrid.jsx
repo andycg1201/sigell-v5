@@ -2,7 +2,7 @@ import React from 'react';
 import { useTaxis } from '../contexts/TaxisContext';
 import TaxiButton from './TaxiButton';
 
-const TaxiGrid = () => {
+const TaxiGrid = ({ onAssignUnit, orders }) => {
   const { taxis, loading } = useTaxis();
 
   if (loading) {
@@ -19,7 +19,7 @@ const TaxiGrid = () => {
     <div className="taxis-section">
       <div className="taxi-grid">
         {taxis.map((taxi) => (
-          <TaxiButton key={taxi.id} taxi={taxi} />
+          <TaxiButton key={taxi.id} taxi={taxi} onAssignUnit={onAssignUnit} orders={orders} />
         ))}
       </div>
     </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TaxisProvider, useTaxis } from './contexts/TaxisContext';
+import { SelectionProvider } from './contexts/SelectionContext';
 import { createAdminUser } from './firebase/auth';
 import Login from './components/Login';
 import Header from './components/Header';
@@ -79,6 +80,40 @@ const AppContent = () => {
     setOrders(prev => [newOrder, ...prev]);
   };
 
+  const handleAssignUnit = (orderId, unitNumber) => {
+    setOrders(prev => prev.map(order => {
+      if (order.id === orderId) {
+        const currentTime = new Date().toLocaleTimeString('es-EC', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        });
+
+        // Si ya tiene una unidad asignada, es una reasignación
+        if (order.unidad) {
+          return {
+            ...order,
+            unidad: unitNumber,
+            horaAsignacion: currentTime,
+            reasignaciones: [
+              ...(order.reasignaciones || []),
+              { unidad: order.unidad, hora: order.horaAsignacion }
+            ]
+          };
+        } else {
+          // Primera asignación
+          return {
+            ...order,
+            unidad: unitNumber,
+            horaAsignacion: currentTime,
+            reasignaciones: []
+          };
+        }
+      }
+      return order;
+    }));
+  };
+
   if (loading || taxisLoading) {
     return (
       <div className="loading-container">
@@ -97,7 +132,7 @@ const AppContent = () => {
       <Header user={user} />
       <main className="main-content">
         {user.email === 'admin@sigell.com' && <AdminPanel />}
-        <TaxiGrid />
+        <TaxiGrid onAssignUnit={handleAssignUnit} orders={orders} />
         <OrdersTable orders={orders} onAddOrder={handleAddOrder} />
       </main>
     </div>
@@ -108,9 +143,11 @@ const AppContent = () => {
 const App = () => {
   return (
     <AuthProvider>
+      <SystemInitializer />
       <TaxisProvider>
-        <SystemInitializer />
-        <AppContent />
+        <SelectionProvider>
+          <AppContent />
+        </SelectionProvider>
       </TaxisProvider>
     </AuthProvider>
   );

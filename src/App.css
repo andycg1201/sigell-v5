@@ -611,7 +611,7 @@
   padding: 4px 8px;
   border-radius: 4px;
   font-weight: bold;
-  font-size: 12px;
+  font-size: 16px; /* Un poco más grande (12px + 4px) */
 }
 
 .unidad-box.pending {
@@ -622,6 +622,141 @@
 .unidad-box.assigned {
   background: #28a745;
   color: white;
+  position: relative;
+}
+
+.reassignment-indicator {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ffc107;
+  color: #000;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid #fff;
+  z-index: 10;
+}
+
+.reassignment-indicator:hover {
+  background: #e0a800;
+  transform: scale(1.1);
+}
+
+.history-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.history-popup {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.history-header h4 {
+  margin: 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.close-history-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-history-btn:hover {
+  background: #c82333;
+}
+
+.history-content {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  background: #f8f9fa;
+  border-left: 4px solid #6c757d;
+}
+
+.history-item.original {
+  background: #d4edda;
+  border-left-color: #28a745;
+}
+
+.history-item .unit {
+  font-weight: bold;
+  color: #333;
+}
+
+.history-item .time {
+  color: #666;
+  font-size: 12px;
+}
+
+.history-item .status {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: #6c757d;
+  color: white;
+}
+
+.history-item.original .status {
+  background: #28a745;
 }
 
 .hora-asignacion-field {

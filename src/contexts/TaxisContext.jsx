@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { subscribeToTaxisData, updateTaxisConfig, incrementTaxiCounter, toggleTaxiStatus } from '../firebase/taxis';
+import { subscribeToTaxisData, updateTaxisConfig, incrementTaxiCounter, decrementTaxiCounter, toggleTaxiStatus } from '../firebase/taxis';
 
 const TaxisContext = createContext();
 
@@ -49,6 +49,17 @@ export const TaxisProvider = ({ children }) => {
     }
   };
 
+  const decrementCounter = async (taxiId) => {
+    try {
+      console.log('TaxisContext: Decrementando contador para taxi:', taxiId);
+      await decrementTaxiCounter(taxiId);
+      console.log('TaxisContext: Contador decrementado exitosamente');
+    } catch (error) {
+      console.error('Error decrementando contador:', error);
+      throw error;
+    }
+  };
+
   const toggleStatus = async (taxiId, habilitado) => {
     try {
       await toggleTaxiStatus(taxiId, habilitado);
@@ -65,6 +76,7 @@ export const TaxisProvider = ({ children }) => {
     loading,
     updateConfig,
     incrementCounter,
+    decrementCounter,
     toggleStatus
   };
 
