@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TaxisProvider, useTaxis } from './contexts/TaxisContext';
 import { SelectionProvider } from './contexts/SelectionContext';
 import { createAdminUser } from './firebase/auth';
+import { subscribeToOrders, updateOrder } from './firebase/orders';
 import Login from './components/Login';
 import Header from './components/Header';
 import AdminPanel from './components/AdminPanel';
@@ -46,72 +47,73 @@ const SystemInitializer = () => {
 const AppContent = () => {
   const { user, loading } = useAuth();
   const { loading: taxisLoading } = useTaxis();
-  const [orders, setOrders] = useState([
-    // Datos de ejemplo para probar
-    {
-      id: 1,
-      cliente: '0997652586',
-      hora: '14:30',
-      domicilio: 'Los Galeanos y Analia Bernal',
-      observaciones: 'Cliente siempre pide que lo esperen 5 minutos',
-      qse: false,
-      unidad: null,
-      horaAsignacion: null,
-      b67: false,
-      conf: false,
-      createdAt: new Date()
-    },
-    {
-      id: 2,
-      cliente: '0987654321',
-      hora: '14:25',
-      domicilio: 'Av. 6 de Diciembre y Colón',
-      observaciones: 'Llevar cambio exacto',
-      qse: true,
-      unidad: null,
-      horaAsignacion: null,
-      b67: false,
-      conf: false,
-      createdAt: new Date()
+  const [orders, setOrders] = useState([]);
+
+  // Cargar pedidos desde Firebase
+  useEffect(() => {
+    if (user) {
+      const unsubscribe = subscribeToOrders((ordersData) => {
+        setOrders(ordersData);
+      });
+
+      return () => unsubscribe();
     }
-  ]);
+  }, [user]);
 
   const handleAddOrder = (newOrder) => {
     setOrders(prev => [newOrder, ...prev]);
   };
 
-  const handleAssignUnit = (orderId, unitNumber) => {
-    setOrders(prev => prev.map(order => {
-      if (order.id === orderId) {
-        const currentTime = new Date().toLocaleTimeString('es-EC', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        });
+  const handleUpdateOrder = (updatedOrder) => {
+    setOrders(prev => prev.map(order => 
+      order.id === updatedOrder.id ? updatedOrder : order
+    ));
+  };
 
-        // Si ya tiene una unidad asignada, es una reasignación
-        if (order.unidad) {
+  const handleAssignUnit = async (orderId, unitNumber) => {
+    try {
+      const currentTime = new Date().toLocaleTimeString('es-EC', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
+
+      const order = orders.find(o => o.id === orderId);
+      if (!order) return;
+
+      let updateData = {
+        unidad: unitNumber,
+        horaAsignacion: currentTime
+      };
+
+      // Si ya tiene una unidad asignada, es una reasignación
+      if (order.unidad) {
+        updateData.reasignaciones = [
+          ...(order.reasignaciones || []),
+          { unidad: order.unidad, hora: order.horaAsignacion }
+        ];
+      } else {
+        // Primera asignación
+        updateData.reasignaciones = [];
+      }
+
+      // Actualizar en Firebase
+      await updateOrder(orderId, updateData);
+
+      // Actualizar estado local
+      setOrders(prev => prev.map(order => {
+        if (order.id === orderId) {
           return {
             ...order,
-            unidad: unitNumber,
-            horaAsignacion: currentTime,
-            reasignaciones: [
-              ...(order.reasignaciones || []),
-              { unidad: order.unidad, hora: order.horaAsignacion }
-            ]
-          };
-        } else {
-          // Primera asignación
-          return {
-            ...order,
-            unidad: unitNumber,
-            horaAsignacion: currentTime,
-            reasignaciones: []
+            ...updateData
           };
         }
-      }
-      return order;
-    }));
+        return order;
+      }));
+    } catch (error) {
+      console.error('Error asignando unidad:', error);
+      alert('Error al asignar la unidad. Intente nuevamente.');
+    }
   };
 
   if (loading || taxisLoading) {
@@ -133,7 +135,7 @@ const AppContent = () => {
       <main className="main-content">
         {user.email === 'admin@sigell.com' && <AdminPanel />}
         <TaxiGrid onAssignUnit={handleAssignUnit} orders={orders} />
-        <OrdersTable orders={orders} onAddOrder={handleAddOrder} />
+        <OrdersTable orders={orders} onAddOrder={handleAddOrder} onUpdateOrder={handleUpdateOrder} />
       </main>
     </div>
   );

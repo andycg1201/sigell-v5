@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelection } from '../contexts/SelectionContext';
+import { getClientByPhone, addClient } from '../firebase/clients';
+import { addOrder, updateOrder, deleteOrder } from '../firebase/orders';
 import ReassignmentHistory from './ReassignmentHistory';
+import ClientModal from './ClientModal';
 
-const OrdersTable = ({ orders = [], onAddOrder }) => {
+const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
   const { selectedOrderId, selectOrder } = useSelection();
   const [newOrder, setNewOrder] = useState({
     cliente: '',
@@ -10,6 +13,10 @@ const OrdersTable = ({ orders = [], onAddOrder }) => {
     observaciones: '',
     qse: false
   });
+  
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState(null);
+  
   
   // Mostrar todos los pedidos (pendientes y asignados)
   const allOrders = orders;
@@ -25,45 +32,216 @@ const OrdersTable = ({ orders = [], onAddOrder }) => {
     }));
   };
 
-  const handleAddNewOrder = () => {
+  const handleAddNewOrder = async () => {
     if (!newOrder.cliente.trim()) {
       alert('Por favor ingrese un número de teléfono');
       return;
     }
 
-    const order = {
-      id: Date.now(),
-      cliente: newOrder.cliente.trim(),
-      hora: new Date().toLocaleTimeString('es-EC', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false 
-      }),
-      domicilio: newOrder.domicilio.trim(),
-      observaciones: newOrder.observaciones.trim(),
-      qse: newOrder.qse,
-      unidad: null,
-      horaAsignacion: null,
-      b67: false,
-      conf: false,
-      createdAt: new Date()
-    };
-
-    onAddOrder(order);
+    const phoneNumber = newOrder.cliente.trim();
     
-    // Limpiar la fila nueva
-    setNewOrder({
-      cliente: '',
-      domicilio: '',
-      observaciones: '',
-      qse: false
-    });
+    try {
+      // Verificar si el cliente existe
+      const existingClient = await getClientByPhone(phoneNumber);
+      
+      if (existingClient) {
+        // Cliente existe, usar sus datos
+        await createOrder(existingClient);
+      } else {
+        // Cliente no existe, mostrar modal para agregarlo
+        setPendingOrder({
+          cliente: phoneNumber,
+          domicilio: newOrder.domicilio.trim(),
+          observaciones: newOrder.observaciones.trim(),
+          qse: newOrder.qse
+        });
+        setShowClientModal(true);
+      }
+    } catch (error) {
+      console.error('Error verificando cliente:', error);
+      // En caso de error, mostrar el modal para agregar cliente
+      setPendingOrder({
+        cliente: phoneNumber,
+        domicilio: newOrder.domicilio.trim(),
+        observaciones: newOrder.observaciones.trim(),
+        qse: newOrder.qse
+      });
+      setShowClientModal(true);
+    }
+  };
+
+  const createOrder = async (clientData) => {
+    try {
+      console.log('Creando pedido con QSM:', newOrder.qse);
+      const order = {
+        cliente: newOrder.cliente.trim(),
+        hora: new Date().toLocaleTimeString('es-EC', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        }),
+        domicilio: clientData.direccion || newOrder.domicilio.trim(),
+        observaciones: clientData.observaciones || newOrder.observaciones.trim(),
+        qse: newOrder.qse,
+        unidad: null,
+        horaAsignacion: null,
+        b67: false,
+        conf: false
+      };
+      console.log('Pedido creado:', order);
+
+      // Guardar en Firebase
+      const orderId = await addOrder(order);
+      
+      // Actualizar estado local
+      onAddOrder({ ...order, id: orderId, createdAt: new Date() });
+      
+      // Limpiar la fila nueva
+      setNewOrder({
+        cliente: '',
+        domicilio: '',
+        observaciones: '',
+        qse: false
+      });
+    } catch (error) {
+      console.error('Error creando pedido:', error);
+      alert('Error al crear el pedido. Intente nuevamente.');
+    }
+  };
+
+  const handleSaveClient = async (clientData) => {
+    try {
+      // Guardar cliente en Firebase
+      await addClient(clientData);
+      
+      // Crear el pedido con los datos del cliente
+      await createOrder(clientData);
+      
+      // Cerrar modal
+      setShowClientModal(false);
+      setPendingOrder(null);
+    } catch (error) {
+      console.error('Error guardando cliente:', error);
+      alert('Error al guardar el cliente. Intente nuevamente.');
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowClientModal(false);
+    setPendingOrder(null);
+  };
+
+  const handleQSMChange = async (orderId, qsmValue) => {
+    try {
+      console.log('Cambiando QSM para pedido:', orderId, 'Nuevo valor:', qsmValue);
+      
+      // Actualizar en Firebase
+      await updateOrder(orderId, { qse: qsmValue });
+      console.log('QSM actualizado en Firebase');
+      
+      // Actualizar estado local
+      const updatedOrders = orders.map(order => 
+        order.id === orderId ? { ...order, qse: qsmValue } : order
+      );
+      console.log('Estado local actualizado');
+      
+      // Actualizar el estado del componente padre
+      if (onUpdateOrder) {
+        const updatedOrder = updatedOrders.find(o => o.id === orderId);
+        if (updatedOrder) {
+          console.log('Notificando cambio al componente padre:', updatedOrder);
+          onUpdateOrder(updatedOrder);
+        }
+      }
+    } catch (error) {
+      console.error('Error actualizando QSM:', error);
+      alert('Error al actualizar QSM. Intente nuevamente.');
+    }
+  };
+
+  const handleConfChange = async (orderId, confValue) => {
+    try {
+      console.log('Cambiando Conf para pedido:', orderId, 'Nuevo valor:', confValue);
+      
+      // Preparar datos de actualización
+      const updateData = { b67: confValue };
+      
+      // Si se está confirmando (marcando), agregar la hora de confirmación
+      if (confValue) {
+        const confirmationTime = new Date().toLocaleTimeString('es-EC', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        });
+        updateData.horaConfirmacion = confirmationTime;
+        console.log('Hora de confirmación:', confirmationTime);
+      } else {
+        // Si se está desmarcando, quitar la hora de confirmación
+        updateData.horaConfirmacion = null;
+      }
+      
+      // Actualizar en Firebase
+      await updateOrder(orderId, updateData);
+      console.log('Conf actualizado en Firebase');
+      
+      // Actualizar estado local
+      const updatedOrders = orders.map(order => 
+        order.id === orderId ? { ...order, ...updateData } : order
+      );
+      console.log('Estado local actualizado');
+      
+      // Actualizar el estado del componente padre
+      if (onUpdateOrder) {
+        const updatedOrder = updatedOrders.find(o => o.id === orderId);
+        if (updatedOrder) {
+          console.log('Notificando cambio al componente padre:', updatedOrder);
+          onUpdateOrder(updatedOrder);
+        }
+      }
+    } catch (error) {
+      console.error('Error actualizando Conf:', error);
+      alert('Error al actualizar confirmación. Intente nuevamente.');
+    }
+  };
+
+  const handleDeleteOrder = async (orderId) => {
+    try {
+      // Confirmar antes de eliminar
+      const confirmDelete = window.confirm('¿Está seguro de que desea eliminar este pedido?');
+      
+      if (confirmDelete) {
+        console.log('Eliminando pedido:', orderId);
+        
+        // Eliminar de Firebase
+        await deleteOrder(orderId);
+        console.log('Pedido eliminado de Firebase');
+        
+        // Notificar al componente padre para actualizar la lista
+        if (onAddOrder) {
+          // Encontrar el pedido a eliminar
+          const orderToDelete = orders.find(o => o.id === orderId);
+          if (orderToDelete) {
+            // Pasar null para indicar que se debe eliminar
+            onAddOrder(null, orderToDelete);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error eliminando pedido:', error);
+      alert('Error al eliminar el pedido. Intente nuevamente.');
+    }
   };
 
   const getRowClass = (order) => {
+    // Validar que order no sea null o undefined
+    if (!order) return 'order-row';
+    
     let baseClass = 'order-row';
     
-    if (order.qse) baseClass += ' qse-row';
+    if (order.qse) {
+      console.log('Aplicando clase qse-row al pedido:', order.id, 'QSM:', order.qse);
+      baseClass += ' qse-row';
+    }
     if (order.unidad) baseClass += ' assigned-row';
     if (selectedOrderId === order.id) baseClass += ' selected-row';
     
@@ -71,6 +249,7 @@ const OrdersTable = ({ orders = [], onAddOrder }) => {
   };
 
   const getUnidadClass = (order) => {
+    if (!order) return 'unidad-field pending';
     if (order.unidad) return 'unidad-field assigned';
     return 'unidad-field pending';
   };
@@ -86,11 +265,11 @@ const OrdersTable = ({ orders = [], onAddOrder }) => {
               <th className="header-hora">Hora</th>
               <th className="header-domicilio">Domicilio</th>
               <th className="header-observaciones">Observaciones</th>
-              <th className="header-qse">QSE</th>
+              <th className="header-qse">QSM</th>
               <th className="header-unidad">Unidad</th>
               <th className="header-hora-asignacion">Hora</th>
-              <th className="header-b67">B67</th>
-              <th className="header-confirm">Confirm:</th>
+              <th className="header-b67">Conf</th>
+              <th className="header-confirm">Eliminar</th>
             </tr>
           </thead>
           <tbody>
@@ -101,7 +280,7 @@ const OrdersTable = ({ orders = [], onAddOrder }) => {
                 </td>
               </tr>
             ) : (
-              allOrders.map((order) => (
+              allOrders.filter(order => order !== null && order !== undefined).map((order) => (
                 <tr 
                   key={order.id} 
                   className={getRowClass(order)}
@@ -119,7 +298,7 @@ const OrdersTable = ({ orders = [], onAddOrder }) => {
                     <input 
                       type="checkbox" 
                       checked={order.qse || false}
-                      readOnly
+                      onChange={(e) => handleQSMChange(order.id, e.target.checked)}
                     />
                   </td>
                   <td className={getUnidadClass(order)}>
@@ -135,18 +314,50 @@ const OrdersTable = ({ orders = [], onAddOrder }) => {
                   </td>
                   <td className="hora-asignacion-field">{order.horaAsignacion || ''}</td>
                   <td className="b67-field">
-                    <input 
-                      type="checkbox" 
-                      checked={order.b67 || false}
-                      readOnly
-                    />
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={order.b67 || false}
+                        onChange={(e) => handleConfChange(order.id, e.target.checked)}
+                      />
+                      {order.b67 && order.horaConfirmacion && (
+                        <div 
+                          className="confirmation-tooltip"
+                          title={`Confirmado a las ${order.horaConfirmacion}`}
+                          style={{
+                            position: 'absolute',
+                            top: '-8px',
+                            right: '-8px',
+                            width: '12px',
+                            height: '12px',
+                            backgroundColor: '#28a745',
+                            borderRadius: '50%',
+                            border: '2px solid white',
+                            cursor: 'pointer',
+                            zIndex: 10
+                          }}
+                          onClick={() => alert(`Cliente confirmado a las ${order.horaConfirmacion}`)}
+                        />
+                      )}
+                    </div>
                   </td>
                   <td className="confirm-field">
-                    <input 
-                      type="text" 
-                      placeholder=""
-                      readOnly
-                    />
+                    <button
+                      className="delete-button"
+                      onClick={() => handleDeleteOrder(order.id)}
+                      title="Eliminar pedido"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        borderRadius: '4px',
+                        color: '#dc3545',
+                        fontSize: '16px'
+                      }}
+                    >
+                      🗑️
+                    </button>
                   </td>
                 </tr>
               ))
@@ -198,12 +409,19 @@ const OrdersTable = ({ orders = [], onAddOrder }) => {
                 <input type="checkbox" disabled />
               </td>
               <td className="confirm-field">
-                <input type="text" placeholder="" disabled />
+                <span style={{ color: '#ccc', fontSize: '14px' }}>-</span>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+      
+      <ClientModal
+        isOpen={showClientModal}
+        onClose={handleCloseModal}
+        onSave={handleSaveClient}
+        phoneNumber={pendingOrder?.cliente}
+      />
     </div>
   );
 };

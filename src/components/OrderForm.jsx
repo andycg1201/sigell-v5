@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getClientByPhone, addClient } from '../firebase/clients';
+import { addOrder } from '../firebase/orders';
+import ClientModal from './ClientModal';
 
 const OrderForm = ({ onAddOrder }) => {
   const [formData, setFormData] = useState({
@@ -7,6 +10,14 @@ const OrderForm = ({ onAddOrder }) => {
     observaciones: '',
     qse: false
   });
+  
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState(null);
+  
+  // Debug: Log cuando cambie el estado del modal
+  useEffect(() => {
+    console.log('Estado del modal cambió:', showClientModal);
+  }, [showClientModal]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -16,7 +27,7 @@ const OrderForm = ({ onAddOrder }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!formData.cliente.trim()) {
@@ -24,33 +35,102 @@ const OrderForm = ({ onAddOrder }) => {
       return;
     }
 
-    const newOrder = {
-      id: Date.now(),
-      cliente: formData.cliente.trim(),
-      hora: new Date().toLocaleTimeString('es-EC', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false 
-      }),
-      domicilio: formData.domicilio.trim(),
-      observaciones: formData.observaciones.trim(),
-      qse: formData.qse,
-      unidad: null,
-      horaAsignacion: null,
-      b67: false,
-      conf: false,
-      createdAt: new Date()
-    };
-
-    onAddOrder(newOrder);
+    const phoneNumber = formData.cliente.trim();
     
-    // Limpiar formulario
-    setFormData({
-      cliente: '',
-      domicilio: '',
-      observaciones: '',
-      qse: false
-    });
+    try {
+      console.log('Verificando cliente con teléfono:', phoneNumber);
+      // Verificar si el cliente existe
+      const existingClient = await getClientByPhone(phoneNumber);
+      console.log('Cliente encontrado:', existingClient);
+      
+      if (existingClient) {
+        // Cliente existe, usar sus datos
+        console.log('Cliente existe, creando pedido...');
+        await createOrder(existingClient);
+      } else {
+        // Cliente no existe, mostrar modal para agregarlo
+        console.log('Cliente no existe, mostrando modal...');
+        setPendingOrder({
+          cliente: phoneNumber,
+          domicilio: formData.domicilio.trim(),
+          observaciones: formData.observaciones.trim(),
+          qse: formData.qse
+        });
+        console.log('Estableciendo showClientModal a true');
+        setShowClientModal(true);
+        console.log('showClientModal establecido');
+      }
+    } catch (error) {
+      console.error('Error verificando cliente:', error);
+      // En caso de error, mostrar el modal para agregar cliente
+      console.log('Error en verificación, mostrando modal de todas formas...');
+      setPendingOrder({
+        cliente: phoneNumber,
+        domicilio: formData.domicilio.trim(),
+        observaciones: formData.observaciones.trim(),
+        qse: formData.qse
+      });
+      setShowClientModal(true);
+    }
+  };
+
+  const createOrder = async (clientData) => {
+    try {
+      const newOrder = {
+        cliente: formData.cliente.trim(),
+        hora: new Date().toLocaleTimeString('es-EC', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        }),
+        domicilio: clientData.direccion || formData.domicilio.trim(),
+        observaciones: clientData.observaciones || formData.observaciones.trim(),
+        qse: formData.qse,
+        unidad: null,
+        horaAsignacion: null,
+        b67: false,
+        conf: false
+      };
+
+      // Guardar en Firebase
+      const orderId = await addOrder(newOrder);
+      
+      // Actualizar estado local
+      onAddOrder({ ...newOrder, id: orderId, createdAt: new Date() });
+      
+      // Limpiar formulario
+      setFormData({
+        cliente: '',
+        domicilio: '',
+        observaciones: '',
+        qse: false
+      });
+    } catch (error) {
+      console.error('Error creando pedido:', error);
+      alert('Error al crear el pedido. Intente nuevamente.');
+    }
+  };
+
+  const handleSaveClient = async (clientData) => {
+    try {
+      // Guardar cliente en Firebase
+      await addClient(clientData);
+      
+      // Crear el pedido con los datos del cliente
+      await createOrder(clientData);
+      
+      // Cerrar modal
+      setShowClientModal(false);
+      setPendingOrder(null);
+    } catch (error) {
+      console.error('Error guardando cliente:', error);
+      alert('Error al guardar el cliente. Intente nuevamente.');
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowClientModal(false);
+    setPendingOrder(null);
   };
 
   return (
@@ -106,7 +186,7 @@ const OrderForm = ({ onAddOrder }) => {
                 checked={formData.qse}
                 onChange={handleInputChange}
               />
-              QSE (Encomiendas)
+              QSM (Encomiendas)
             </label>
           </div>
         </div>
@@ -114,7 +194,26 @@ const OrderForm = ({ onAddOrder }) => {
         <button type="submit" className="btn-add-order">
           Agregar Pedido
         </button>
+        
+        {/* Botón de prueba temporal */}
+        <button 
+          type="button" 
+          onClick={() => {
+            console.log('Botón de prueba clickeado');
+            setShowClientModal(true);
+          }}
+          style={{ marginLeft: '10px', background: 'red', color: 'white' }}
+        >
+          TEST MODAL
+        </button>
       </form>
+      
+      <ClientModal
+        isOpen={showClientModal}
+        onClose={handleCloseModal}
+        onSave={handleSaveClient}
+        phoneNumber={pendingOrder?.cliente}
+      />
     </div>
   );
 };
