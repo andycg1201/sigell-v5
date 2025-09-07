@@ -130,10 +130,10 @@
 .taxi-grid {
   flex: 1;
   display: grid;
-  grid-template-rows: repeat(5, 38px);
+  grid-template-rows: repeat(5, 36px);
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  gap: 2px 15px;
+  gap: 0px 15px;
   padding: 10px;
   background: white;
   border-radius: 8px;
@@ -155,8 +155,8 @@
 }
 
 .taxi-checkbox {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
 }
 
