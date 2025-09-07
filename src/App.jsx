@@ -6,6 +6,7 @@ import Login from './components/Login';
 import Header from './components/Header';
 import AdminPanel from './components/AdminPanel';
 import TaxiGrid from './components/TaxiGrid';
+import OrdersTable from './components/OrdersTable';
 import './App.css';
 
 // Componente para inicializar el sistema
@@ -44,6 +45,39 @@ const SystemInitializer = () => {
 const AppContent = () => {
   const { user, loading } = useAuth();
   const { loading: taxisLoading } = useTaxis();
+  const [orders, setOrders] = useState([
+    // Datos de ejemplo para probar
+    {
+      id: 1,
+      cliente: '0997652586',
+      hora: '14:30',
+      domicilio: 'Los Galeanos y Analia Bernal',
+      observaciones: 'Cliente siempre pide que lo esperen 5 minutos',
+      qse: false,
+      unidad: null,
+      horaAsignacion: null,
+      b67: false,
+      conf: false,
+      createdAt: new Date()
+    },
+    {
+      id: 2,
+      cliente: '0987654321',
+      hora: '14:25',
+      domicilio: 'Av. 6 de Diciembre y Colón',
+      observaciones: 'Llevar cambio exacto',
+      qse: true,
+      unidad: null,
+      horaAsignacion: null,
+      b67: false,
+      conf: false,
+      createdAt: new Date()
+    }
+  ]);
+
+  const handleAddOrder = (newOrder) => {
+    setOrders(prev => [newOrder, ...prev]);
+  };
 
   if (loading || taxisLoading) {
     return (
@@ -64,6 +98,7 @@ const AppContent = () => {
       <main className="main-content">
         {user.email === 'admin@sigell.com' && <AdminPanel />}
         <TaxiGrid />
+        <OrdersTable orders={orders} onAddOrder={handleAddOrder} />
       </main>
     </div>
   );

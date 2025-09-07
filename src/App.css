@@ -63,16 +63,93 @@
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
+  gap: 20px;
 }
 
 /* Panel de administración */
 .admin-section {
-  background: white;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 15px;
+  position: relative;
   flex-shrink: 0;
+}
+
+.admin-toggle-btn {
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+}
+
+.admin-toggle-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.admin-panel-popup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  margin-top: 10px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-panel {
+  padding: 20px;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.admin-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.close-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.close-btn:hover {
+  background: #c82333;
+  transform: scale(1.1);
 }
 
 .admin-panel h3 {
@@ -111,12 +188,19 @@
   color: #666;
 }
 
+.admin-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
 /* Sección de taxis */
 .taxis-section {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  height: 200px; /* Altura con un poquito más de espacio */
+  flex-shrink: 0;
+  margin-top: 0; /* Pegado al panel de administración */
 }
 
 .taxis-section h2 {
@@ -140,6 +224,32 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   min-height: 0;
+  position: relative;
+}
+
+/* Filas resaltadas usando pseudo-elementos */
+.taxi-grid::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  height: 36px;
+  background: rgba(40, 167, 69, 0.1);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.taxi-grid::after {
+  content: '';
+  position: absolute;
+  top: 82px;
+  left: 10px;
+  right: 10px;
+  height: 36px;
+  background: rgba(40, 167, 69, 0.1);
+  z-index: 0;
+  pointer-events: none;
 }
 
 /* Elemento de taxi */
@@ -152,6 +262,13 @@
   border-radius: 4px;
   border: 1px solid #e9ecef;
   height: 34px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Filas resaltadas - se aplicará via JavaScript */
+.taxi-item.highlighted-row {
+  background: rgba(255, 193, 7, 0.15) !important;
 }
 
 .taxi-checkbox {
@@ -316,4 +433,306 @@
   font-size: 14px;
   margin-top: 10px;
   text-align: center;
+}
+
+/* Sección de pedidos */
+.orders-section {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 0; /* Pegado a la botonera */
+  height: 400px; /* Altura fija para no tapar la botonera */
+}
+
+.orders-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.orders-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 24px;
+}
+
+.orders-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-stats, .btn-export {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.3s;
+}
+
+.btn-stats {
+  background: #17a2b8;
+  color: white;
+}
+
+.btn-export {
+  background: #28a745;
+  color: white;
+}
+
+.btn-stats:hover, .btn-export:hover {
+  opacity: 0.8;
+}
+
+/* Tabla de pedidos */
+.orders-table-container {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.orders-table th {
+  background: #f8f9fa;
+  padding: 12px 8px;
+  text-align: center;
+  font-weight: bold;
+  color: #333;
+  border-bottom: 2px solid #dee2e6;
+  border-right: 1px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  font-size: 12px;
+}
+
+/* Headers específicos con ancho fijo como Excel */
+.header-cliente { width: 120px; }
+.header-hora { width: 80px; }
+.header-domicilio { width: 300px; }
+.header-observaciones { width: 250px; }
+.header-qse { width: 60px; }
+.header-unidad { width: 100px; }
+.header-hora-asignacion { width: 80px; }
+.header-b67 { width: 60px; }
+.header-confirm { width: 100px; }
+
+.orders-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #e9ecef;
+  border-right: 1px solid #e9ecef;
+  vertical-align: middle;
+  text-align: center;
+}
+
+/* Filas de pedidos */
+.order-row {
+  transition: background-color 0.3s;
+}
+
+.order-row:hover {
+  background: #f8f9fa;
+}
+
+.qse-row {
+  background: rgba(255, 193, 7, 0.1);
+}
+
+.assigned-row {
+  background: rgba(40, 167, 69, 0.1);
+}
+
+.selected-row {
+  background: rgba(0, 123, 255, 0.2) !important;
+  border: 2px solid #007bff;
+}
+
+.new-order-row {
+  background: rgba(0, 123, 255, 0.05);
+  border: 2px dashed #007bff;
+}
+
+.new-order-row input {
+  font-size: 12px;
+  padding: 4px;
+}
+
+.new-order-row input:focus {
+  outline: none;
+  background: rgba(0, 123, 255, 0.1);
+}
+
+/* Campos específicos */
+.cliente-field {
+  font-weight: bold;
+  color: #333;
+  text-align: left;
+  position: relative;
+}
+
+.hora-field {
+  color: #666;
+}
+
+.domicilio-field {
+  text-align: left;
+}
+
+.observaciones-field {
+  text-align: left;
+  font-style: italic;
+  color: #666;
+}
+
+.qse-field input, .b67-field input {
+  width: 16px;
+  height: 16px;
+}
+
+.unidad-field {
+  position: relative;
+}
+
+.unidad-box {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.unidad-box.pending {
+  background: #dc3545;
+  color: white;
+}
+
+.unidad-box.assigned {
+  background: #28a745;
+  color: white;
+}
+
+.hora-asignacion-field {
+  color: #666;
+}
+
+.confirm-field input {
+  width: 100%;
+  padding: 4px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.dropdown-arrow {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+/* Formulario de pedidos */
+.order-form-section {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.order-form-section h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.order-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+  align-items: end;
+}
+
+.form-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+  font-size: 12px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="tel"] {
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 12px;
+  transition: border-color 0.3s;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="tel"]:focus {
+  outline: none;
+  border-color: #28a745;
+  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
+}
+
+.checkbox-group {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-group label {
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.btn-add-order {
+  padding: 10px 20px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  align-self: flex-start;
+}
+
+.btn-add-order:hover {
+  background: #218838;
 }

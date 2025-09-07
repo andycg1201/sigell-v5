@@ -4,6 +4,15 @@ import { useTaxis } from '../contexts/TaxisContext';
 const TaxiButton = ({ taxi }) => {
   const { counters, incrementCounter, toggleStatus } = useTaxis();
   const counter = counters[taxi.id] || 0;
+  
+  // Determinar si la fila debe ser resaltada (filas 1, 3, 5)
+  const rowNumber = ((taxi.id - 1) % 5) + 1;
+  const isHighlightedRow = rowNumber === 1 || rowNumber === 3 || rowNumber === 5;
+  
+  // Log temporal para debug
+  if (isHighlightedRow) {
+    console.log(`Taxi ${taxi.numero} está en fila ${rowNumber} - debe ser resaltado`);
+  }
 
   const handleButtonClick = async () => {
     console.log('Botón clickeado:', taxi.numero, 'checkboxMarcado:', taxi.checkboxMarcado);
@@ -31,7 +40,7 @@ const TaxiButton = ({ taxi }) => {
   };
 
   return (
-    <div className="taxi-item">
+    <div className={`taxi-item ${isHighlightedRow ? 'highlighted-row' : ''}`}>
       <input
         type="checkbox"
         className="taxi-checkbox"

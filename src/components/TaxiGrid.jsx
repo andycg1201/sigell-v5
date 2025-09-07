@@ -8,7 +8,6 @@ const TaxiGrid = () => {
   if (loading) {
     return (
       <div className="taxis-section">
-        <h2>Control de Taxis</h2>
         <div style={{ textAlign: 'center', padding: '20px' }}>
           Cargando taxis...
         </div>
@@ -18,7 +17,6 @@ const TaxiGrid = () => {
 
   return (
     <div className="taxis-section">
-      <h2>Control de Taxis</h2>
       <div className="taxi-grid">
         {taxis.map((taxi) => (
           <TaxiButton key={taxi.id} taxi={taxi} />
