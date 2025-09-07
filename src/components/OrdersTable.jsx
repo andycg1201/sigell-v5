@@ -114,6 +114,7 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
       });
 
       // Crear múltiples pedidos según la cantidad
+      const createdOrders = [];
       for (let i = 0; i < newOrder.cantidad; i++) {
         const order = {
           cliente: newOrder.cliente.trim(),
@@ -131,9 +132,14 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
         // Guardar en Firebase
         const orderId = await addOrder(order);
         
-        // Actualizar estado local
-        onAddOrder({ ...order, id: orderId, createdAt: new Date() });
+        // Agregar a la lista de pedidos creados
+        createdOrders.push({ ...order, id: orderId, createdAt: new Date() });
       }
+      
+      // Agregar todos los pedidos al inicio de la lista (más recientes primero)
+      createdOrders.forEach(order => {
+        onAddOrder(order);
+      });
       
       // Limpiar la fila nueva
       setNewOrder({

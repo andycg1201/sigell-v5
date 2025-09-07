@@ -800,7 +800,7 @@
 .header-domicilio { width: 300px; }
 .header-observaciones { width: 250px; }
 .header-qse { width: 50px; text-align: center; }
-.header-unidad { width: 120px; text-align: center; }
+.header-unidad { width: 120px; text-align: center !important; }
 .header-hora-asignacion { width: 60px; text-align: center; }
 .header-b67 { width: 50px; text-align: center; }
 .header-confirm { width: 80px; text-align: center; }
