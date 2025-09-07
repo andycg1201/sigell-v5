@@ -130,7 +130,7 @@
 .taxi-grid {
   flex: 1;
   display: grid;
-  grid-template-rows: repeat(5, 28px);
+  grid-template-rows: repeat(5, 38px);
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   gap: 2px 15px;
@@ -147,11 +147,11 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 6px;
+  padding: 4px 10px;
   background: #f8f9fa;
   border-radius: 4px;
   border: 1px solid #e9ecef;
-  height: 24px;
+  height: 34px;
 }
 
 .taxi-checkbox {
@@ -162,17 +162,21 @@
 
 .taxi-button {
   background: rgba(40, 167, 69, 0.2);
-  color: #28a745;
+  color: #000000;
   border: 1px solid #28a745;
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 3px;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: bold;
-  min-width: 20px;
+  min-width: 26px;
   text-align: center;
+  line-height: 16px;
   transition: all 0.3s;
-  height: 20px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .taxi-button:hover {
@@ -181,28 +185,32 @@
 
 .taxi-button:disabled {
   background: rgba(220, 53, 69, 0.2);
-  color: #dc3545;
+  color: #000000;
   border-color: #dc3545;
   cursor: not-allowed;
 }
 
 .taxi-counter {
   background: rgba(40, 167, 69, 0.2);
-  color: #28a745;
+  color: #000000;
   border: 1px solid #28a745;
-  padding: 2px 4px;
+  padding: 4px 8px;
   border-radius: 3px;
-  font-size: 9px;
+  font-size: 14px;
   font-weight: bold;
-  min-width: 18px;
+  min-width: 26px;
   text-align: center;
+  line-height: 16px;
   transition: all 0.3s;
-  height: 18px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .taxi-counter.disabled {
   background: rgba(220, 53, 69, 0.2);
-  color: #dc3545;
+  color: #000000;
   border-color: #dc3545;
 }
 
