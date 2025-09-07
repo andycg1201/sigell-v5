@@ -256,8 +256,69 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
 
   return (
     <div className="orders-section">
-      {/* Fila fija para nuevo pedido - siempre visible */}
+      {/* Fila fija para nuevo pedido - siempre visible, sin títulos */}
       <div className="new-order-fixed-row">
+        <table className="orders-table">
+          <tbody>
+            <tr className="new-order-row">
+              <td className="cliente-field">
+                <input
+                  type="tel"
+                  placeholder="Teléfono"
+                  value={newOrder.cliente}
+                  onChange={(e) => handleNewOrderChange('cliente', e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddNewOrder()}
+                  style={{ width: '100%', border: 'none', background: 'transparent' }}
+                />
+              </td>
+              <td className="hora-field">-</td>
+              <td className="domicilio-field">
+                <input
+                  type="text"
+                  placeholder="Domicilio"
+                  value={newOrder.domicilio}
+                  onChange={(e) => handleNewOrderChange('domicilio', e.target.value)}
+                  style={{ width: '100%', border: 'none', background: 'transparent' }}
+                />
+              </td>
+              <td className="observaciones-field">
+                <input
+                  type="text"
+                  placeholder="Observaciones"
+                  value={newOrder.observaciones}
+                  onChange={(e) => handleNewOrderChange('observaciones', e.target.value)}
+                  style={{ width: '100%', border: 'none', background: 'transparent' }}
+                />
+              </td>
+              <td className="qse-field">-</td>
+              <td className="unidad-field">-</td>
+              <td className="hora-asignacion-field">-</td>
+              <td className="b67-field">-</td>
+              <td className="confirm-field">
+                <button
+                  className="add-order-button"
+                  onClick={handleAddNewOrder}
+                  title="Agregar pedido"
+                  style={{
+                    background: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  +
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      {/* Tabla de pedidos existentes con títulos */}
+      <div className="orders-table-container">
         <table className="orders-table">
           <thead>
             <tr>
@@ -272,71 +333,6 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
               <th className="header-confirm">Eliminar</th>
             </tr>
           </thead>
-        </table>
-        <div className="new-order-input-row">
-          <table className="orders-table">
-            <tbody>
-              <tr className="new-order-row">
-                <td className="cliente-field">
-                  <input
-                    type="tel"
-                    placeholder="Teléfono"
-                    value={newOrder.cliente}
-                    onChange={(e) => handleNewOrderChange('cliente', e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddNewOrder()}
-                    style={{ width: '100%', border: 'none', background: 'transparent' }}
-                  />
-                </td>
-                <td className="hora-field">-</td>
-                <td className="domicilio-field">
-                  <input
-                    type="text"
-                    placeholder="Domicilio"
-                    value={newOrder.domicilio}
-                    onChange={(e) => handleNewOrderChange('domicilio', e.target.value)}
-                    style={{ width: '100%', border: 'none', background: 'transparent' }}
-                  />
-                </td>
-                <td className="observaciones-field">
-                  <input
-                    type="text"
-                    placeholder="Observaciones"
-                    value={newOrder.observaciones}
-                    onChange={(e) => handleNewOrderChange('observaciones', e.target.value)}
-                    style={{ width: '100%', border: 'none', background: 'transparent' }}
-                  />
-                </td>
-                <td className="qse-field">-</td>
-                <td className="unidad-field">-</td>
-                <td className="hora-asignacion-field">-</td>
-                <td className="b67-field">-</td>
-                <td className="confirm-field">
-                  <button
-                    className="add-order-button"
-                    onClick={handleAddNewOrder}
-                    title="Agregar pedido"
-                    style={{
-                      background: '#28a745',
-                      color: 'white',
-                      border: 'none',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '12px'
-                    }}
-                  >
-                    +
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      
-      {/* Tabla de pedidos existentes */}
-      <div className="orders-table-container">
-        <table className="orders-table">
           <tbody>
             {allOrders.length === 0 ? (
               <tr>

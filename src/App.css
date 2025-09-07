@@ -720,11 +720,6 @@
   box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
 }
 
-.new-order-input-row {
-  background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
-  border-bottom: 2px solid #2196f3;
-  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
-}
 
 .orders-header {
   display: flex;
@@ -788,7 +783,7 @@
 .orders-table th {
   background: #f8f9fa;
   padding: 12px 8px;
-  text-align: center;
+  text-align: left;
   font-weight: bold;
   color: #333;
   border-bottom: 2px solid #dee2e6;
@@ -801,21 +796,21 @@
 
 /* Headers específicos con ancho fijo como Excel */
 .header-cliente { width: 120px; }
-.header-hora { width: 80px; }
+.header-hora { width: 60px; text-align: center; }
 .header-domicilio { width: 300px; }
 .header-observaciones { width: 250px; }
-.header-qse { width: 60px; }
-.header-unidad { width: 100px; }
-.header-hora-asignacion { width: 80px; }
-.header-b67 { width: 60px; }
-.header-confirm { width: 100px; }
+.header-qse { width: 50px; text-align: center; }
+.header-unidad { width: 120px; text-align: center; }
+.header-hora-asignacion { width: 60px; text-align: center; }
+.header-b67 { width: 50px; text-align: center; }
+.header-confirm { width: 80px; text-align: center; }
 
 .orders-table td {
   padding: 10px 8px;
   border-bottom: 1px solid #e9ecef;
   border-right: 1px solid #e9ecef;
   vertical-align: middle;
-  text-align: center;
+  text-align: left;
 }
 
 /* Filas de pedidos */
@@ -871,7 +866,7 @@
 }
 
 .assigned-row {
-  background: rgba(40, 167, 69, 0.1);
+  background: rgba(40, 167, 69, 0.15);
 }
 
 .selected-row {
@@ -920,6 +915,7 @@
 
 .hora-field {
   color: #666;
+  text-align: center;
 }
 
 .domicilio-field {
@@ -932,6 +928,10 @@
   color: #666;
 }
 
+.qse-field {
+  text-align: center;
+}
+
 .qse-field input, .b67-field input {
   width: 16px;
   height: 16px;
@@ -939,6 +939,7 @@
 
 .unidad-field {
   position: relative;
+  text-align: center;
 }
 
 .unidad-box {
@@ -947,6 +948,9 @@
   border-radius: 4px;
   font-weight: bold;
   font-size: 18px; /* Más grande para resaltar el número del taxi */
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .unidad-box.pending {
@@ -1096,6 +1100,11 @@
 
 .hora-asignacion-field {
   color: #666;
+  text-align: center;
+}
+
+.confirm-field {
+  text-align: center;
 }
 
 .confirm-field input {
