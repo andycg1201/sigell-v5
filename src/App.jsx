@@ -63,6 +63,10 @@ const AppContent = () => {
     setOrders(prev => [newOrder, ...prev]);
   };
 
+  const handleDeleteOrder = (orderId) => {
+    setOrders(prev => prev.filter(order => order.id !== orderId));
+  };
+
   const handleUpdateOrder = (updatedOrder) => {
     setOrders(prev => prev.map(order => 
       order.id === updatedOrder.id ? updatedOrder : order
@@ -133,7 +137,7 @@ const AppContent = () => {
       <Header user={user} />
       <main className="main-content">
         <TaxiGrid onAssignUnit={handleAssignUnit} orders={orders} />
-        <OrdersTable orders={orders} onAddOrder={handleAddOrder} onUpdateOrder={handleUpdateOrder} />
+        <OrdersTable orders={orders} onAddOrder={handleAddOrder} onDeleteOrder={handleDeleteOrder} onUpdateOrder={handleUpdateOrder} />
       </main>
     </div>
   );

@@ -5,7 +5,7 @@ import { addOrder, updateOrder, deleteOrder } from '../firebase/orders';
 import ReassignmentHistory from './ReassignmentHistory';
 import ClientModal from './ClientModal';
 
-const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
+const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) => {
   const { selectedOrderId, selectOrder } = useSelection();
   const [newOrder, setNewOrder] = useState({
     cliente: '',
@@ -47,20 +47,92 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
     });
   };
 
-  const handleClienteKeyPress = (e) => {
+  const handleClienteKeyPress = async (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      // Mover foco al campo cantidad
-      if (cantidadInputRef) {
-        cantidadInputRef.focus();
+      
+      if (!newOrder.cliente.trim()) {
+        return;
+      }
+
+      const phoneNumber = newOrder.cliente.trim();
+      
+      try {
+        // Verificar si el cliente existe
+        const existingClient = await getClientByPhone(phoneNumber);
+        
+        if (existingClient) {
+          // Cliente existe, mover foco al campo cantidad
+          if (cantidadInputRef) {
+            cantidadInputRef.focus();
+          }
+        } else {
+          // Cliente no existe, mostrar modal para agregarlo
+          setPendingOrder({
+            cliente: phoneNumber,
+            domicilio: newOrder.domicilio.trim(),
+            observaciones: newOrder.observaciones.trim(),
+            cantidad: newOrder.cantidad,
+            qse: newOrder.qse
+          });
+          setShowClientModal(true);
+        }
+      } catch (error) {
+        console.error('Error verificando cliente:', error);
+        // En caso de error, mostrar el modal para agregar cliente
+        setPendingOrder({
+          cliente: phoneNumber,
+          domicilio: newOrder.domicilio.trim(),
+          observaciones: newOrder.observaciones.trim(),
+          cantidad: newOrder.cantidad,
+          qse: newOrder.qse
+        });
+        setShowClientModal(true);
       }
     }
   };
 
-  const handleCantidadKeyPress = (e) => {
+  const handleCantidadKeyPress = async (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleAddNewOrder();
+      
+      if (!newOrder.cliente.trim()) {
+        alert('Por favor ingrese un número de teléfono');
+        return;
+      }
+
+      const phoneNumber = newOrder.cliente.trim();
+      
+      try {
+        // Verificar si el cliente existe
+        const existingClient = await getClientByPhone(phoneNumber);
+        
+        if (existingClient) {
+          // Cliente existe, crear pedidos
+          await createOrder(existingClient);
+        } else {
+          // Cliente no existe, mostrar modal para agregarlo
+          setPendingOrder({
+            cliente: phoneNumber,
+            domicilio: newOrder.domicilio.trim(),
+            observaciones: newOrder.observaciones.trim(),
+            cantidad: newOrder.cantidad,
+            qse: newOrder.qse
+          });
+          setShowClientModal(true);
+        }
+      } catch (error) {
+        console.error('Error verificando cliente:', error);
+        // En caso de error, mostrar el modal para agregar cliente
+        setPendingOrder({
+          cliente: phoneNumber,
+          domicilio: newOrder.domicilio.trim(),
+          observaciones: newOrder.observaciones.trim(),
+          cantidad: newOrder.cantidad,
+          qse: newOrder.qse
+        });
+        setShowClientModal(true);
+      }
     }
   };
 
@@ -160,12 +232,14 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
       // Guardar cliente en Firebase
       await addClient(clientData);
       
-      // Crear el pedido con los datos del cliente
-      await createOrder(clientData);
-      
       // Cerrar modal
       setShowClientModal(false);
       setPendingOrder(null);
+      
+      // Mover foco al campo cantidad
+      if (cantidadInputRef) {
+        cantidadInputRef.focus();
+      }
     } catch (error) {
       console.error('Error guardando cliente:', error);
       alert('Error al guardar el cliente. Intente nuevamente.');
@@ -263,13 +337,8 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
         console.log('Pedido eliminado de Firebase');
         
         // Notificar al componente padre para actualizar la lista
-        if (onAddOrder) {
-          // Encontrar el pedido a eliminar
-          const orderToDelete = orders.find(o => o.id === orderId);
-          if (orderToDelete) {
-            // Pasar null para indicar que se debe eliminar
-            onAddOrder(null, orderToDelete);
-          }
+        if (onDeleteOrder) {
+          onDeleteOrder(orderId);
         }
       }
     } catch (error) {
