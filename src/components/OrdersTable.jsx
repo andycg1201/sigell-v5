@@ -11,8 +11,11 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
     cliente: '',
     domicilio: '',
     observaciones: '',
+    cantidad: 1,
     qse: false
   });
+  
+  const [cantidadInputRef, setCantidadInputRef] = useState(null);
   
   const [showClientModal, setShowClientModal] = useState(false);
   const [pendingOrder, setPendingOrder] = useState(null);
@@ -30,6 +33,35 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleCantidadChange = (increment) => {
+    setNewOrder(prev => {
+      const newCantidad = increment 
+        ? Math.min(prev.cantidad + 1, 5) 
+        : Math.max(prev.cantidad - 1, 1);
+      return {
+        ...prev,
+        cantidad: newCantidad
+      };
+    });
+  };
+
+  const handleClienteKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // Mover foco al campo cantidad
+      if (cantidadInputRef) {
+        cantidadInputRef.focus();
+      }
+    }
+  };
+
+  const handleCantidadKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddNewOrder();
+    }
   };
 
   const handleAddNewOrder = async () => {
@@ -53,6 +85,7 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
           cliente: phoneNumber,
           domicilio: newOrder.domicilio.trim(),
           observaciones: newOrder.observaciones.trim(),
+          cantidad: newOrder.cantidad,
           qse: newOrder.qse
         });
         setShowClientModal(true);
@@ -64,6 +97,7 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
         cliente: phoneNumber,
         domicilio: newOrder.domicilio.trim(),
         observaciones: newOrder.observaciones.trim(),
+        cantidad: newOrder.cantidad,
         qse: newOrder.qse
       });
       setShowClientModal(true);
@@ -72,40 +106,46 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
 
   const createOrder = async (clientData) => {
     try {
-      console.log('Creando pedido con QSM:', newOrder.qse);
-      const order = {
-        cliente: newOrder.cliente.trim(),
-        hora: new Date().toLocaleTimeString('es-EC', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        }),
-        domicilio: clientData.direccion || newOrder.domicilio.trim(),
-        observaciones: clientData.observaciones || newOrder.observaciones.trim(),
-        qse: newOrder.qse,
-        unidad: null,
-        horaAsignacion: null,
-        b67: false,
-        conf: false
-      };
-      console.log('Pedido creado:', order);
+      console.log('Creando pedidos con cantidad:', newOrder.cantidad);
+      const currentTime = new Date().toLocaleTimeString('es-EC', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
 
-      // Guardar en Firebase
-      const orderId = await addOrder(order);
-      
-      // Actualizar estado local
-      onAddOrder({ ...order, id: orderId, createdAt: new Date() });
+      // Crear múltiples pedidos según la cantidad
+      for (let i = 0; i < newOrder.cantidad; i++) {
+        const order = {
+          cliente: newOrder.cliente.trim(),
+          hora: currentTime,
+          domicilio: clientData.direccion || newOrder.domicilio.trim(),
+          observaciones: clientData.observaciones || newOrder.observaciones.trim(),
+          qse: newOrder.qse,
+          unidad: null,
+          horaAsignacion: null,
+          b67: false,
+          conf: false
+        };
+        console.log(`Pedido ${i + 1} creado:`, order);
+
+        // Guardar en Firebase
+        const orderId = await addOrder(order);
+        
+        // Actualizar estado local
+        onAddOrder({ ...order, id: orderId, createdAt: new Date() });
+      }
       
       // Limpiar la fila nueva
       setNewOrder({
         cliente: '',
         domicilio: '',
         observaciones: '',
+        cantidad: 1,
         qse: false
       });
     } catch (error) {
-      console.error('Error creando pedido:', error);
-      alert('Error al crear el pedido. Intente nuevamente.');
+      console.error('Error creando pedidos:', error);
+      alert('Error al crear los pedidos. Intente nuevamente.');
     }
   };
 
@@ -267,11 +307,10 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
                   placeholder="Teléfono"
                   value={newOrder.cliente}
                   onChange={(e) => handleNewOrderChange('cliente', e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddNewOrder()}
+                  onKeyPress={handleClienteKeyPress}
                   style={{ width: '100%', border: 'none', background: 'transparent' }}
                 />
               </td>
-              <td className="hora-field">-</td>
               <td className="domicilio-field">
                 <input
                   type="text"
@@ -290,10 +329,35 @@ const OrdersTable = ({ orders = [], onAddOrder, onUpdateOrder }) => {
                   style={{ width: '100%', border: 'none', background: 'transparent' }}
                 />
               </td>
-              <td className="qse-field">-</td>
-              <td className="unidad-field">-</td>
-              <td className="hora-asignacion-field">-</td>
-              <td className="b67-field">-</td>
+              <td className="cantidad-field">
+                <div className="cantidad-control">
+                  <button
+                    type="button"
+                    className="cantidad-btn"
+                    onClick={() => handleCantidadChange(false)}
+                    disabled={newOrder.cantidad <= 1}
+                  >
+                    -
+                  </button>
+                  <span 
+                    className="cantidad-value"
+                    ref={setCantidadInputRef}
+                    tabIndex={0}
+                    onKeyPress={handleCantidadKeyPress}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {newOrder.cantidad}
+                  </span>
+                  <button
+                    type="button"
+                    className="cantidad-btn"
+                    onClick={() => handleCantidadChange(true)}
+                    disabled={newOrder.cantidad >= 5}
+                  >
+                    +
+                  </button>
+                </div>
+              </td>
               <td className="confirm-field">
                 <button
                   className="add-order-button"

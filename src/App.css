@@ -895,6 +895,64 @@
   background: #218838 !important;
 }
 
+/* Campo cantidad */
+.cantidad-field {
+  text-align: center;
+  width: 80px;
+}
+
+.cantidad-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.cantidad-btn {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  color: #495057;
+  transition: all 0.2s;
+}
+
+.cantidad-btn:hover:not(:disabled) {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.cantidad-btn:disabled {
+  background: #f8f9fa;
+  color: #adb5bd;
+  cursor: not-allowed;
+  border-color: #e9ecef;
+}
+
+.cantidad-value {
+  font-weight: bold;
+  font-size: 14px;
+  color: #333;
+  min-width: 20px;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 3px;
+  transition: all 0.2s;
+}
+
+.cantidad-value:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+  background: #f8f9fa;
+}
+
 .new-order-row input {
   font-size: 14px;
   padding: 6px;
