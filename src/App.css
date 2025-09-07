@@ -711,6 +711,21 @@
   height: 400px; /* Altura fija para no tapar la botonera */
 }
 
+/* Fila fija para nuevo pedido */
+.new-order-fixed-row {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+  border-radius: 8px 8px 0 0;
+  border-bottom: 2px solid #2196f3;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
+}
+
+.new-order-input-row {
+  background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+  border-bottom: 2px solid #2196f3;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
+}
+
 .orders-header {
   display: flex;
   justify-content: space-between;
@@ -760,7 +775,8 @@
   flex: 1;
   overflow-y: auto;
   border: 1px solid #e9ecef;
-  border-radius: 4px;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
 }
 
 .orders-table {
@@ -864,8 +880,24 @@
 }
 
 .new-order-row {
-  background: rgba(0, 123, 255, 0.05);
-  border: 2px dashed #007bff;
+  background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+  border: 2px solid #2196f3;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+}
+
+.add-order-button {
+  background: #28a745 !important;
+  color: white !important;
+  border: none !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-size: 12px !important;
+  transition: background-color 0.3s !important;
+}
+
+.add-order-button:hover {
+  background: #218838 !important;
 }
 
 .new-order-row input {
