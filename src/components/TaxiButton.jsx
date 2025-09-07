@@ -6,12 +6,17 @@ const TaxiButton = ({ taxi }) => {
   const counter = counters[taxi.id] || 0;
 
   const handleButtonClick = async () => {
+    console.log('Botón clickeado:', taxi.numero, 'checkboxMarcado:', taxi.checkboxMarcado);
     if (!taxi.checkboxMarcado) {
       try {
+        console.log('Incrementando contador para taxi:', taxi.id);
         await incrementCounter(taxi.id);
+        console.log('Contador incrementado exitosamente');
       } catch (error) {
         console.error('Error incrementando contador:', error);
       }
+    } else {
+      console.log('Taxi deshabilitado, no se incrementa contador');
     }
   };
 

@@ -106,6 +106,7 @@ export const getTodayCounters = async () => {
 // Función para incrementar contador de un taxi
 export const incrementTaxiCounter = async (taxiId) => {
   try {
+    console.log('Firebase: Incrementando contador para taxi:', taxiId);
     const today = new Date().toISOString().split('T')[0];
     const docRef = doc(db, 'contadores', 'diarios');
     const docSnap = await getDoc(docRef);
@@ -124,8 +125,10 @@ export const incrementTaxiCounter = async (taxiId) => {
     }
     
     contadores[today][taxiId] += 1;
+    console.log('Firebase: Nuevo valor del contador:', contadores[today][taxiId]);
     
     await setDoc(docRef, contadores);
+    console.log('Firebase: Contador guardado exitosamente');
     return contadores[today][taxiId];
   } catch (error) {
     console.error('Error incrementando contador:', error);
@@ -161,28 +164,46 @@ export const toggleTaxiStatus = async (taxiId, checkboxMarcado) => {
 // Función para suscribirse a cambios en tiempo real
 export const subscribeToTaxisData = (callback) => {
   const configRef = doc(db, 'configuracion', 'taxis');
+  const contadoresRef = doc(db, 'contadores', 'diarios');
+  
+  let configData = null;
+  let countersData = null;
+  
+  const updateCallback = () => {
+    if (configData && countersData !== null) {
+      const today = new Date().toISOString().split('T')[0];
+      const todayCounters = countersData[today] || {};
+      callback({
+        config: configData,
+        counters: todayCounters
+      });
+    }
+  };
   
   const unsubscribeConfig = onSnapshot(configRef, (doc) => {
     if (doc.exists()) {
-      const config = doc.data();
-      
-      // Obtener contadores del día actual
-      getTodayCounters().then(counters => {
-        callback({
-          config,
-          counters
-        });
-      }).catch(error => {
-        console.error('Error obteniendo contadores:', error);
-        callback({
-          config,
-          counters: {}
-        });
-      });
+      configData = doc.data();
+      updateCallback();
     }
   }, (error) => {
     console.error('Error en snapshot de configuración:', error);
   });
+
+  const unsubscribeContadores = onSnapshot(contadoresRef, (doc) => {
+    if (doc.exists()) {
+      countersData = doc.data();
+      updateCallback();
+    } else {
+      countersData = {};
+      updateCallback();
+    }
+  }, (error) => {
+    console.error('Error en snapshot de contadores:', error);
+  });
   
-  return unsubscribeConfig;
+  // Retornar función para cancelar ambas suscripciones
+  return () => {
+    unsubscribeConfig();
+    unsubscribeContadores();
+  };
 };

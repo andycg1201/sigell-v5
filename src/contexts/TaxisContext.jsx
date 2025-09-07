@@ -19,6 +19,7 @@ export const TaxisProvider = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = subscribeToTaxisData((data) => {
+      console.log('TaxisContext: Datos recibidos:', data);
       setTaxis(data.config.taxis || []);
       setCounters(data.counters || {});
       setTotalTaxis(data.config.totalTaxis || 10);
@@ -39,7 +40,9 @@ export const TaxisProvider = ({ children }) => {
 
   const incrementCounter = async (taxiId) => {
     try {
+      console.log('TaxisContext: Incrementando contador para taxi:', taxiId);
       await incrementTaxiCounter(taxiId);
+      console.log('TaxisContext: Contador incrementado exitosamente');
     } catch (error) {
       console.error('Error incrementando contador:', error);
       throw error;
