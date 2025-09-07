@@ -130,8 +130,9 @@
 .taxi-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(11, 1fr);
-  grid-auto-rows: 28px;
+  grid-template-rows: repeat(5, 28px);
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 2px 15px;
   padding: 10px;
   background: white;
