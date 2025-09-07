@@ -6,7 +6,6 @@ import { createAdminUser } from './firebase/auth';
 import { subscribeToOrders, updateOrder } from './firebase/orders';
 import Login from './components/Login';
 import Header from './components/Header';
-import AdminPanel from './components/AdminPanel';
 import TaxiGrid from './components/TaxiGrid';
 import OrdersTable from './components/OrdersTable';
 import './App.css';
@@ -133,7 +132,6 @@ const AppContent = () => {
     <div className="app">
       <Header user={user} />
       <main className="main-content">
-        {user.email === 'admin@sigell.com' && <AdminPanel />}
         <TaxiGrid onAssignUnit={handleAssignUnit} orders={orders} />
         <OrdersTable orders={orders} onAddOrder={handleAddOrder} onUpdateOrder={handleUpdateOrder} />
       </main>
