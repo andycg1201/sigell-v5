@@ -1,14 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTaxis } from '../contexts/TaxisContext';
 import { useSelection } from '../contexts/SelectionContext';
-import { useBases } from '../contexts/BasesContext';
-import BaseSelectionModal from './BaseSelectionModal';
 
-const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder }) => {
+const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseModal }) => {
   const { counters, incrementCounter, decrementCounter, toggleStatus } = useTaxis();
   const { selectedOrderId, clearSelection } = useSelection();
-  const { bases } = useBases();
-  const [showBaseModal, setShowBaseModal] = useState(false);
   const counter = counters[taxi.id] || 0;
   
   // Determinar si la fila debe ser resaltada (filas 1, 3, 5)
@@ -36,7 +32,9 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder }) => {
       
       // Si no hay fila seleccionada, mostrar modal de bases
       console.log('Mostrando modal de bases para taxi:', taxi.id);
-      setShowBaseModal(true);
+      if (onShowBaseModal) {
+        onShowBaseModal(taxi.numero);
+      }
     } else {
       console.log('Taxi deshabilitado, no se incrementa contador');
     }
@@ -52,17 +50,6 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder }) => {
     }
   };
 
-  const handleBaseSelect = (base) => {
-    console.log('Base seleccionada:', base, 'para taxi:', taxi.id);
-    if (onCreateBaseOrder) {
-      onCreateBaseOrder(base, taxi.numero);
-    }
-    setShowBaseModal(false);
-  };
-
-  const handleCloseModal = () => {
-    setShowBaseModal(false);
-  };
 
   return (
     <div className={`taxi-item ${isHighlightedRow ? 'highlighted-row' : ''}`}>
@@ -83,13 +70,6 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder }) => {
         {counter}
       </div>
       
-      {showBaseModal && (
-        <BaseSelectionModal
-          bases={bases}
-          onSelectBase={handleBaseSelect}
-          onClose={handleCloseModal}
-        />
-      )}
     </div>
   );
 };
