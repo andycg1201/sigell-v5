@@ -23,6 +23,11 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
   
   // Mostrar todos los pedidos (pendientes y asignados)
   const allOrders = orders;
+  
+  // Debug: Log de pedidos para detectar duplicados
+  useEffect(() => {
+    console.log('OrdersTable: Pedidos actuales:', allOrders.map(o => ({ id: o.id, cliente: o.cliente, hora: o.hora })));
+  }, [allOrders]);
 
   const handleRowClick = (orderId) => {
     selectOrder(orderId);
@@ -202,16 +207,14 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
         console.log(`Pedido ${i + 1} creado:`, order);
 
         // Guardar en Firebase
-        const orderId = await addOrder(order);
+        const orderWithId = await addOrder(order);
         
-        // Agregar a la lista de pedidos creados
-        createdOrders.push({ ...order, id: orderId, createdAt: new Date() });
+        // Agregar a la lista de pedidos creados (solo para logging)
+        createdOrders.push(orderWithId);
       }
       
-      // Agregar todos los pedidos al inicio de la lista (más recientes primero)
-      createdOrders.forEach(order => {
-        onAddOrder(order);
-      });
+      // No agregar manualmente al estado local - el listener de Firebase se encargará
+      console.log('Pedidos creados en Firebase:', createdOrders);
       
       // Limpiar la fila nueva
       setNewOrder({
@@ -480,7 +483,7 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
                 </td>
               </tr>
             ) : (
-              allOrders.filter(order => order !== null && order !== undefined).map((order) => (
+              allOrders.filter(order => order !== null && order !== undefined && order.id).map((order) => (
                 <tr 
                   key={order.id} 
                   className={getRowClass(order)}
