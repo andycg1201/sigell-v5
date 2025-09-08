@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TaxisProvider, useTaxis } from './contexts/TaxisContext';
+import { BasesProvider } from './contexts/BasesContext';
 import { SelectionProvider } from './contexts/SelectionContext';
 import { createAdminUser } from './firebase/auth';
-import { subscribeToOrders, updateOrder } from './firebase/orders';
+import { subscribeToOrders, updateOrder, addOrder } from './firebase/orders';
 import { incrementTaxiCounter, decrementTaxiCounter } from './firebase/taxis';
 import Login from './components/Login';
 import Header from './components/Header';
@@ -91,6 +92,45 @@ const AppContent = () => {
     ));
   };
 
+  const handleCreateBaseOrder = async (base, unitNumber) => {
+    try {
+      const currentTime = new Date().toLocaleTimeString('es-EC', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
+
+      // Crear pedido desde base
+      const baseOrder = {
+        cliente: base.nombre,
+        domicilio: base.direccion,
+        observaciones: '',
+        unidad: unitNumber,
+        horaAsignacion: currentTime,
+        qsm: false,
+        confirmado: false,
+        reasignaciones: []
+      };
+
+      // Crear pedido en Firebase
+      console.log('Creando pedido desde base en Firebase:', baseOrder);
+      const newOrder = await addOrder(baseOrder);
+      
+      // Incrementar contador del taxi automáticamente
+      console.log('Creando pedido desde base: incrementando contador del taxi', unitNumber);
+      await incrementTaxiCounter(unitNumber);
+
+      // Agregar pedido al estado local
+      setOrders(prev => [newOrder, ...prev]);
+      
+      console.log('Pedido desde base creado exitosamente:', newOrder);
+      
+    } catch (error) {
+      console.error('Error creando pedido desde base:', error);
+      alert('Error creando pedido desde base. Intente nuevamente.');
+    }
+  };
+
   const handleAssignUnit = async (orderId, unitNumber) => {
     try {
       const currentTime = new Date().toLocaleTimeString('es-EC', { 
@@ -163,7 +203,7 @@ const AppContent = () => {
     <div className="app">
       <Header user={user} />
       <main className="main-content">
-        <TaxiGrid onAssignUnit={handleAssignUnit} orders={orders} />
+        <TaxiGrid onAssignUnit={handleAssignUnit} orders={orders} onCreateBaseOrder={handleCreateBaseOrder} />
         <OrdersTable orders={orders} onAddOrder={handleAddOrder} onDeleteOrder={handleDeleteOrder} onUpdateOrder={handleUpdateOrder} />
       </main>
     </div>
@@ -174,12 +214,14 @@ const AppContent = () => {
 const App = () => {
   return (
     <AuthProvider>
-      <SystemInitializer />
-      <TaxisProvider>
-        <SelectionProvider>
-          <AppContent />
-        </SelectionProvider>
-      </TaxisProvider>
+      <BasesProvider>
+        <SystemInitializer />
+        <TaxisProvider>
+          <SelectionProvider>
+            <AppContent />
+          </SelectionProvider>
+        </TaxisProvider>
+      </BasesProvider>
     </AuthProvider>
   );
 };
