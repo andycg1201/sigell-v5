@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   subscribeToNovedadesConfig, 
   updateNovedadesConfig,
@@ -52,18 +52,18 @@ export const NovedadesProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
-  // Función para actualizar la configuración de novedades
-  const updateConfig = async (newConfig) => {
+  // Función para actualizar la configuración de novedades - OPTIMIZADA
+  const updateConfig = useCallback(async (newConfig) => {
     try {
       await updateNovedadesConfig(newConfig);
     } catch (error) {
       console.error('Error actualizando configuración de novedades:', error);
       throw error;
     }
-  };
+  }, []);
 
-  // Función para suscribirse a las novedades de un taxi específico
-  const subscribeToTaxi = (taxiId) => {
+  // Función para suscribirse a las novedades de un taxi específico - OPTIMIZADA
+  const subscribeToTaxi = useCallback((taxiId) => {
     const unsubscribe = subscribeToTaxiNovedades(taxiId, (data) => {
       setTaxiNovedades(prev => ({
         ...prev,
@@ -72,10 +72,10 @@ export const NovedadesProvider = ({ children }) => {
     });
 
     return unsubscribe;
-  };
+  }, []);
 
-  // Función para agregar una novedad a un taxi
-  const addNovedad = async (taxiId, codigo, descripcion) => {
+  // Función para agregar una novedad a un taxi - OPTIMIZADA
+  const addNovedad = useCallback(async (taxiId, codigo, descripcion) => {
     console.log('NovedadesContext - addNovedad:', { taxiId, codigo, descripcion });
     try {
       await addTaxiNovedad(taxiId, codigo, descripcion);
@@ -84,10 +84,10 @@ export const NovedadesProvider = ({ children }) => {
       console.error('Error agregando novedad:', error);
       throw error;
     }
-  };
+  }, []);
 
-  // Función para remover una novedad de un taxi
-  const removeNovedad = async (taxiId, codigo) => {
+  // Función para remover una novedad de un taxi - OPTIMIZADA
+  const removeNovedad = useCallback(async (taxiId, codigo) => {
     console.log('NovedadesContext - removeNovedad:', { taxiId, codigo });
     try {
       await removeTaxiNovedad(taxiId, codigo);
@@ -96,28 +96,29 @@ export const NovedadesProvider = ({ children }) => {
       console.error('Error removiendo novedad:', error);
       throw error;
     }
-  };
+  }, []);
 
-  // Función para obtener las novedades activas de un taxi
-  const getTaxiNovedadesActivas = (taxiId) => {
+  // Función para obtener las novedades activas de un taxi - OPTIMIZADA
+  const getTaxiNovedadesActivas = useCallback((taxiId) => {
     const taxiData = taxiNovedades[taxiId];
     if (!taxiData || !taxiData.novedades) {
       return [];
     }
     return taxiData.novedades.filter(n => n.activa);
-  };
+  }, [taxiNovedades]);
 
-  // Función para obtener el contador de novedades de un taxi
-  const getTaxiNovedadesCount = (taxiId) => {
+  // Función para obtener el contador de novedades de un taxi - OPTIMIZADA
+  const getTaxiNovedadesCount = useCallback((taxiId) => {
     return getTaxiNovedadesActivas(taxiId).length;
-  };
+  }, [getTaxiNovedadesActivas]);
 
-  // Función para verificar si un taxi tiene novedades
-  const hasTaxiNovedades = (taxiId) => {
+  // Función para verificar si un taxi tiene novedades - OPTIMIZADA
+  const hasTaxiNovedades = useCallback((taxiId) => {
     return getTaxiNovedadesCount(taxiId) > 0;
-  };
+  }, [getTaxiNovedadesCount]);
 
-  const value = {
+  // Optimizar el valor del contexto para evitar re-renderizados innecesarios
+  const value = useMemo(() => ({
     novedadesConfig,
     taxiNovedades,
     updateConfig,
@@ -127,7 +128,17 @@ export const NovedadesProvider = ({ children }) => {
     getTaxiNovedadesActivas,
     getTaxiNovedadesCount,
     hasTaxiNovedades
-  };
+  }), [
+    novedadesConfig,
+    taxiNovedades,
+    updateConfig,
+    subscribeToTaxi,
+    addNovedad,
+    removeNovedad,
+    getTaxiNovedadesActivas,
+    getTaxiNovedadesCount,
+    hasTaxiNovedades
+  ]);
 
   return (
     <NovedadesContext.Provider value={value}>

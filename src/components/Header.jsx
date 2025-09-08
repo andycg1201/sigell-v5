@@ -3,11 +3,15 @@ import { logout } from '../firebase/auth';
 import { useTaxis } from '../contexts/TaxisContext';
 import { useBases } from '../contexts/BasesContext';
 import { useNovedades } from '../contexts/NovedadesContext';
+import { useCierre } from '../contexts/CierreContext';
+import { debugEstadoPedidos, forzarCierreDelDia } from '../firebase/cierre';
+import ArchivosModal from './ArchivosModal';
 
 const Header = ({ user }) => {
   const { totalTaxis, updateConfig } = useTaxis();
   const { bases, updateConfig: updateBasesConfig } = useBases();
   const { novedadesConfig, updateConfig: updateNovedadesConfig } = useNovedades();
+  const { estadoCierre, ejecutarCierreManual } = useCierre();
   const [newTotal, setNewTotal] = React.useState(totalTaxis);
   const [loading, setLoading] = React.useState(false);
   const [isAdminOpen, setIsAdminOpen] = React.useState(false);
@@ -15,6 +19,7 @@ const Header = ({ user }) => {
   const [tempBases, setTempBases] = React.useState([]);
   const [editingNovedades, setEditingNovedades] = React.useState(false);
   const [tempNovedades, setTempNovedades] = React.useState([]);
+  const [showArchivosModal, setShowArchivosModal] = React.useState(false);
 
   const handleLogout = async () => {
     try {
@@ -126,7 +131,12 @@ const Header = ({ user }) => {
       return;
     }
     const newId = Math.max(...tempNovedades.map(n => parseInt(n.codigo.replace('B', '')) || 0), 0) + 1;
-    setTempNovedades([...tempNovedades, { codigo: `B${newId.toString().padStart(2, '0')}`, descripcion: '', activa: true }]);
+    setTempNovedades([...tempNovedades, { 
+      codigo: `B${newId.toString().padStart(2, '0')}`, 
+      descripcion: '', 
+      activa: true,
+      heredarAlCierre: true 
+    }]);
   };
 
   const removeNovedad = (index) => {
@@ -135,6 +145,86 @@ const Header = ({ user }) => {
       return;
     }
     setTempNovedades(tempNovedades.filter((_, i) => i !== index));
+  };
+
+  // Función para manejar cierre manual
+  const handleCierreManual = async () => {
+    if (!estadoCierre.necesitaCierre) {
+      alert('No se necesita cierre en este momento. El sistema ya está al día.');
+      return;
+    }
+
+    const confirmar = window.confirm(
+      `¿Está seguro de ejecutar el cierre manual?\n\n` +
+      `Esto archivará todos los pedidos del día y reseteará los contadores.\n` +
+      `Último cierre: ${estadoCierre.ultimoCierre}\n` +
+      `Fecha actual: ${estadoCierre.fechaHoy}`
+    );
+
+    if (!confirmar) return;
+
+    setLoading(true);
+    try {
+      const resultado = await ejecutarCierreManual();
+      alert(
+        `Cierre manual ejecutado exitosamente:\n` +
+        `- Pedidos archivados: ${resultado.pedidosArchivados}\n` +
+        `- Taxis actualizados: ${resultado.taxisActualizados}\n` +
+        `- Fecha de cierre: ${resultado.fechaCierre}`
+      );
+    } catch (error) {
+      console.error('Error en cierre manual:', error);
+      alert('Error ejecutando cierre manual: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para debug del estado
+  const handleDebugEstado = async () => {
+    try {
+      const estado = await debugEstadoPedidos();
+      alert(
+        `Estado actual del sistema:\n\n` +
+        `Pedidos activos: ${estado.pedidosActivos}\n` +
+        `Archivos creados: ${estado.archivos}\n` +
+        `Necesita cierre: ${estado.estadoCierre.necesitaCierre}\n` +
+        `Último cierre: ${estado.estadoCierre.ultimoCierre}\n` +
+        `Fecha hoy: ${estado.estadoCierre.fechaHoy}\n\n` +
+        `Revisa la consola para más detalles.`
+      );
+    } catch (error) {
+      console.error('Error en debug:', error);
+      alert('Error ejecutando debug: ' + error.message);
+    }
+  };
+
+  // Función para forzar cierre (testing)
+  const handleForzarCierre = async () => {
+    const confirmar = window.confirm(
+      `⚠️ ADVERTENCIA: Cierre Forzado\n\n` +
+      `Esto archivará TODOS los pedidos actuales como si fueran de ayer.\n` +
+      `¿Está seguro de continuar?\n\n` +
+      `Esta función es solo para testing.`
+    );
+
+    if (!confirmar) return;
+
+    setLoading(true);
+    try {
+      const resultado = await forzarCierreDelDia();
+      alert(
+        `Cierre forzado ejecutado:\n` +
+        `- Pedidos archivados: ${resultado.pedidosArchivados}\n` +
+        `- Fecha de archivo: ${resultado.fechaArchivo}\n\n` +
+        `Los pedidos deberían desaparecer de la pantalla.`
+      );
+    } catch (error) {
+      console.error('Error en cierre forzado:', error);
+      alert('Error ejecutando cierre forzado: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getCurrentDateTime = () => {
@@ -333,6 +423,14 @@ const Header = ({ user }) => {
                               />
                               Activa
                             </label>
+                            <label className="novedad-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={novedad.heredarAlCierre !== false}
+                                onChange={(e) => handleNovedadChange(index, 'heredarAlCierre', e.target.checked)}
+                              />
+                              Heredar
+                            </label>
                             <button 
                               className="remove-novedad-btn"
                               onClick={() => removeNovedad(index)}
@@ -374,6 +472,9 @@ const Header = ({ user }) => {
                             <span className={`status ${novedad.activa ? 'activa' : 'inactiva'}`}>
                               {novedad.activa ? '✅' : '❌'}
                             </span>
+                            <span className={`status ${novedad.heredarAlCierre !== false ? 'heredar' : 'no-heredar'}`}>
+                              {novedad.heredarAlCierre !== false ? '🔄' : '🚫'}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -381,6 +482,36 @@ const Header = ({ user }) => {
                   </div>
                   
                   <div className="admin-actions">
+                    <button 
+                      className="btn-cierre-manual"
+                      onClick={handleCierreManual}
+                      disabled={loading || !estadoCierre.necesitaCierre}
+                      title={estadoCierre.necesitaCierre ? 
+                        `Cierre pendiente desde ${estadoCierre.ultimoCierre}` : 
+                        'Sistema al día - no se necesita cierre'
+                      }
+                    >
+                      {loading ? '🔄 Procesando...' : '🔄 Cierre Manual'}
+                    </button>
+                    <button 
+                      className="btn-archivos"
+                      onClick={() => setShowArchivosModal(true)}
+                    >
+                      📁 Archivos
+                    </button>
+                    <button 
+                      className="btn-debug"
+                      onClick={handleDebugEstado}
+                    >
+                      🔍 Debug
+                    </button>
+                    <button 
+                      className="btn-forzar-cierre"
+                      onClick={handleForzarCierre}
+                      disabled={loading}
+                    >
+                      ⚡ Forzar Cierre
+                    </button>
                     <button className="btn-stats">📊 Estadísticas</button>
                     <button className="btn-export">📤 Exportar</button>
                   </div>
@@ -393,6 +524,12 @@ const Header = ({ user }) => {
           Cerrar Sesión
         </button>
       </div>
+
+      {/* Modal de Archivos */}
+      <ArchivosModal 
+        isOpen={showArchivosModal}
+        onClose={() => setShowArchivosModal(false)}
+      />
     </header>
   );
 };

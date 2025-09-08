@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTaxis } from '../contexts/TaxisContext';
 import { useSelection } from '../contexts/SelectionContext';
 import { useNovedades } from '../contexts/NovedadesContext';
@@ -23,23 +23,33 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [optimisticNovedades, setOptimisticNovedades] = useState(new Set());
   
-  const realNovedadesCount = getTaxiNovedadesCount(taxi.id);
-  const realNovedadesActivas = getTaxiNovedadesActivas(taxi.id);
+  // Optimizar cálculos de novedades con useMemo
+  const realNovedadesCount = useMemo(() => getTaxiNovedadesCount(taxi.id), [taxi.id, getTaxiNovedadesCount]);
+  const realNovedadesActivas = useMemo(() => getTaxiNovedadesActivas(taxi.id), [taxi.id, getTaxiNovedadesActivas]);
   
-  // Combinar novedades reales con optimistas (evitando duplicados)
-  const realCodigos = new Set(realNovedadesActivas.map(n => n.codigo));
-  const optimistasUnicos = Array.from(optimisticNovedades).filter(codigo => !realCodigos.has(codigo));
+  // Combinar novedades reales con optimistas (evitando duplicados) - OPTIMIZADO
+  const novedadesData = useMemo(() => {
+    const realCodigos = new Set(realNovedadesActivas.map(n => n.codigo));
+    const optimistasUnicos = Array.from(optimisticNovedades).filter(codigo => !realCodigos.has(codigo));
+    
+    const novedadesCount = realNovedadesCount + optimistasUnicos.length;
+    const novedadesActivas = [
+      ...realNovedadesActivas,
+      ...optimistasUnicos.map(codigo => ({
+        codigo,
+        descripcion: novedadesConfig?.novedades?.find(n => n.codigo === codigo)?.descripcion || '',
+        activa: true
+      }))
+    ];
+    
+    return {
+      novedadesCount,
+      novedadesActivas,
+      hasNovedades: novedadesCount > 0
+    };
+  }, [realNovedadesCount, realNovedadesActivas, optimisticNovedades, novedadesConfig?.novedades]);
   
-  const novedadesCount = realNovedadesCount + optimistasUnicos.length;
-  const novedadesActivas = [
-    ...realNovedadesActivas,
-    ...optimistasUnicos.map(codigo => ({
-      codigo,
-      descripcion: novedadesConfig?.novedades?.find(n => n.codigo === codigo)?.descripcion || '',
-      activa: true
-    }))
-  ];
-  const hasNovedades = novedadesCount > 0;
+  const { novedadesCount, novedadesActivas, hasNovedades } = novedadesData;
   
   // Determinar si la fila debe ser resaltada (filas 1, 3, 5)
   const rowNumber = ((taxi.id - 1) % 5) + 1;
@@ -59,7 +69,7 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
   //   console.log(`Taxi ${taxi.numero} está en fila ${rowNumber} - debe ser resaltado`);
   // }
 
-  const handleButtonClick = async () => {
+  const handleButtonClick = useCallback(async () => {
     console.log('Botón clickeado:', taxi.numero, 'checkboxMarcado:', taxi.checkboxMarcado);
     
     if (!taxi.checkboxMarcado) {
@@ -97,9 +107,9 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
     } else {
       console.log('Taxi deshabilitado, no se incrementa contador');
     }
-  };
+  }, [taxi.checkboxMarcado, taxi.numero, taxi.id, selectedOrderId, hasNovedades, novedadesActivas, onShowToast, onAssignUnit, clearSelection, onShowBaseModal]);
 
-  const handleCheckboxChange = async (e) => {
+  const handleCheckboxChange = useCallback(async (e) => {
     try {
       // Si se marca el checkbox, se desactiva el taxi
       // Si se desmarca el checkbox, se activa el taxi
@@ -107,23 +117,23 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
     } catch (error) {
       console.error('Error alternando estado:', error);
     }
-  };
+  }, [taxi.id, toggleStatus]);
 
   // Manejar click derecho para mostrar modal de novedades
-  const handleRightClick = (e) => {
+  const handleRightClick = useCallback((e) => {
     e.preventDefault();
     console.log('Click derecho en taxi:', taxi.numero);
     setShowNovedadesModal(true);
-  };
+  }, [taxi.numero]);
 
   // Manejar click en el badge para mostrar novedades activas
-  const handleBadgeClick = (e) => {
+  const handleBadgeClick = useCallback((e) => {
     e.stopPropagation();
     setShowBadgeModal(true);
-  };
+  }, []);
 
-  // Manejar toggle de novedad
-  const handleToggleNovedad = async (taxiId, codigo, descripcion, activar) => {
+  // Manejar toggle de novedad - OPTIMIZADO
+  const handleToggleNovedad = useCallback(async (taxiId, codigo, descripcion, activar) => {
     console.log('handleToggleNovedad llamado:', { taxiId, codigo, descripcion, activar });
     
     // Actualizar estado optimista inmediatamente
@@ -160,7 +170,7 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
         setOptimisticNovedades(prev => new Set(prev).add(codigo));
       }
     }
-  };
+  }, [addNovedad, removeNovedad]);
 
 
   return (

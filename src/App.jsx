@@ -4,6 +4,7 @@ import { TaxisProvider, useTaxis } from './contexts/TaxisContext';
 import { BasesProvider } from './contexts/BasesContext';
 import { SelectionProvider } from './contexts/SelectionContext';
 import { NovedadesProvider } from './contexts/NovedadesContext';
+import { CierreProvider } from './contexts/CierreContext';
 import { createAdminUser } from './firebase/auth';
 import { subscribeToOrders, updateOrder, addOrder } from './firebase/orders';
 import { incrementTaxiCounter, decrementTaxiCounter } from './firebase/taxis';
@@ -231,12 +232,14 @@ const App = () => {
     <AuthProvider>
       <BasesProvider>
         <NovedadesProvider>
-          <SystemInitializer />
-          <TaxisProvider>
-            <SelectionProvider>
-              <AppContent />
-            </SelectionProvider>
-          </TaxisProvider>
+          <CierreProvider>
+            <SystemInitializer />
+            <TaxisProvider>
+              <SelectionProvider>
+                <AppContent />
+              </SelectionProvider>
+            </TaxisProvider>
+          </CierreProvider>
         </NovedadesProvider>
       </BasesProvider>
     </AuthProvider>

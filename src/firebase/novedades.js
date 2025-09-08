@@ -23,10 +23,10 @@ export const getNovedadesConfig = async () => {
       // Crear configuración por defecto
       const defaultConfig = {
         novedades: [
-          { codigo: 'B54', descripcion: 'Daño mecánico', activa: true },
-          { codigo: 'B07', descripcion: 'Carrera fuera de ciudad', activa: true },
-          { codigo: 'B12', descripcion: 'Sin combustible', activa: true },
-          { codigo: 'B23', descripcion: 'Problema eléctrico', activa: true }
+          { codigo: 'B54', descripcion: 'Daño mecánico', activa: true, heredarAlCierre: true },
+          { codigo: 'B07', descripcion: 'Carrera fuera de ciudad', activa: true, heredarAlCierre: true },
+          { codigo: 'B12', descripcion: 'Sin combustible', activa: true, heredarAlCierre: true },
+          { codigo: 'B23', descripcion: 'Problema eléctrico', activa: true, heredarAlCierre: true }
         ],
         mantenerAlCierre: true,
         ultimaActualizacion: serverTimestamp()
