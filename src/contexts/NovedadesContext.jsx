@@ -4,7 +4,8 @@ import {
   updateNovedadesConfig,
   subscribeToTaxiNovedades,
   addTaxiNovedad,
-  removeTaxiNovedad
+  removeTaxiNovedad,
+  getNovedadesConfig
 } from '../firebase/novedades';
 
 const NovedadesContext = createContext();
@@ -26,9 +27,25 @@ export const NovedadesProvider = ({ children }) => {
 
   // Suscribirse a la configuración de novedades
   useEffect(() => {
+    const initializeConfig = async () => {
+      try {
+        // Primero intentar obtener la configuración existente
+        const config = await getNovedadesConfig();
+        if (config) {
+          setNovedadesConfig(config);
+          console.log('Configuración de novedades cargada correctamente');
+        }
+      } catch (error) {
+        console.error('Error inicializando configuración de novedades:', error);
+      }
+    };
+
+    initializeConfig();
+
     const unsubscribe = subscribeToNovedadesConfig((config) => {
       if (config) {
         setNovedadesConfig(config);
+        // console.log('Configuración de novedades actualizada:', config);
       }
     });
 
@@ -59,8 +76,10 @@ export const NovedadesProvider = ({ children }) => {
 
   // Función para agregar una novedad a un taxi
   const addNovedad = async (taxiId, codigo, descripcion) => {
+    console.log('NovedadesContext - addNovedad:', { taxiId, codigo, descripcion });
     try {
       await addTaxiNovedad(taxiId, codigo, descripcion);
+      console.log('NovedadesContext - novedad agregada exitosamente');
     } catch (error) {
       console.error('Error agregando novedad:', error);
       throw error;
@@ -69,8 +88,10 @@ export const NovedadesProvider = ({ children }) => {
 
   // Función para remover una novedad de un taxi
   const removeNovedad = async (taxiId, codigo) => {
+    console.log('NovedadesContext - removeNovedad:', { taxiId, codigo });
     try {
       await removeTaxiNovedad(taxiId, codigo);
+      console.log('NovedadesContext - novedad removida exitosamente');
     } catch (error) {
       console.error('Error removiendo novedad:', error);
       throw error;
@@ -114,3 +135,4 @@ export const NovedadesProvider = ({ children }) => {
     </NovedadesContext.Provider>
   );
 };
+

@@ -135,7 +135,7 @@ export const addTaxiNovedad = async (taxiId, codigo, descripcion) => {
       codigo,
       descripcion,
       activa: true,
-      fechaHora: serverTimestamp()
+      fechaHora: new Date()
     };
     
     novedades.push(nuevaNovedad);

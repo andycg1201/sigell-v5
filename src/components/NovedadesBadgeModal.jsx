@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import './NovedadesBadgeModal.css';
 
 const NovedadesBadgeModal = ({ 
@@ -15,7 +16,7 @@ const NovedadesBadgeModal = ({
     }
   };
 
-  return (
+  return createPortal(
     <div className="badge-modal-overlay" onClick={handleOverlayClick}>
       <div className="badge-modal">
         <div className="badge-modal-header">
@@ -40,7 +41,8 @@ const NovedadesBadgeModal = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

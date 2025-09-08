@@ -21,9 +21,24 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
   const counter = counters[taxi.id] || 0;
   const [showNovedadesModal, setShowNovedadesModal] = useState(false);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [optimisticNovedades, setOptimisticNovedades] = useState(new Set());
   
-  const novedadesCount = getTaxiNovedadesCount(taxi.id);
-  const novedadesActivas = getTaxiNovedadesActivas(taxi.id);
+  const realNovedadesCount = getTaxiNovedadesCount(taxi.id);
+  const realNovedadesActivas = getTaxiNovedadesActivas(taxi.id);
+  
+  // Combinar novedades reales con optimistas (evitando duplicados)
+  const realCodigos = new Set(realNovedadesActivas.map(n => n.codigo));
+  const optimistasUnicos = Array.from(optimisticNovedades).filter(codigo => !realCodigos.has(codigo));
+  
+  const novedadesCount = realNovedadesCount + optimistasUnicos.length;
+  const novedadesActivas = [
+    ...realNovedadesActivas,
+    ...optimistasUnicos.map(codigo => ({
+      codigo,
+      descripcion: novedadesConfig?.novedades?.find(n => n.codigo === codigo)?.descripcion || '',
+      activa: true
+    }))
+  ];
   const hasNovedades = novedadesCount > 0;
   
   // Determinar si la fila debe ser resaltada (filas 1, 3, 5)
@@ -36,10 +51,13 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
     return () => unsubscribe();
   }, [taxi.id, subscribeToTaxi]);
 
-  // Log temporal para debug
-  if (isHighlightedRow) {
-    console.log(`Taxi ${taxi.numero} está en fila ${rowNumber} - debe ser resaltado`);
-  }
+  // Limpiar estado optimista cuando las novedades reales se actualizan
+  // useEffect removido para evitar bucle infinito
+
+  // Log temporal para debug - REMOVIDO para evitar bucle infinito
+  // if (isHighlightedRow) {
+  //   console.log(`Taxi ${taxi.numero} está en fila ${rowNumber} - debe ser resaltado`);
+  // }
 
   const handleButtonClick = async () => {
     console.log('Botón clickeado:', taxi.numero, 'checkboxMarcado:', taxi.checkboxMarcado);
@@ -63,7 +81,15 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
         return;
       }
       
-      // Si no hay fila seleccionada, mostrar modal de bases
+      // Si no hay fila seleccionada, verificar novedades antes de mostrar modal de bases
+      if (hasNovedades) {
+        const novedadesTexto = novedadesActivas.map(n => `${n.codigo} - ${n.descripcion}`).join(', ');
+        const mensaje = `Taxi ${taxi.numero} tiene novedades: ${novedadesTexto}`;
+        onShowToast(mensaje, 'error');
+        return;
+      }
+      
+      // Si no tiene novedades, mostrar modal de bases
       console.log('Mostrando modal de bases para taxi:', taxi.id);
       if (onShowBaseModal) {
         onShowBaseModal(taxi.numero);
@@ -86,6 +112,7 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
   // Manejar click derecho para mostrar modal de novedades
   const handleRightClick = (e) => {
     e.preventDefault();
+    console.log('Click derecho en taxi:', taxi.numero);
     setShowNovedadesModal(true);
   };
 
@@ -97,14 +124,41 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
 
   // Manejar toggle de novedad
   const handleToggleNovedad = async (taxiId, codigo, descripcion, activar) => {
+    console.log('handleToggleNovedad llamado:', { taxiId, codigo, descripcion, activar });
+    
+    // Actualizar estado optimista inmediatamente
+    if (activar) {
+      setOptimisticNovedades(prev => new Set(prev).add(codigo));
+    } else {
+      setOptimisticNovedades(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(codigo);
+        return newSet;
+      });
+    }
+    
     try {
       if (activar) {
+        console.log('Agregando novedad:', codigo);
         await addNovedad(taxiId, codigo, descripcion);
+        console.log('Novedad agregada exitosamente');
       } else {
+        console.log('Removiendo novedad:', codigo);
         await removeNovedad(taxiId, codigo);
+        console.log('Novedad removida exitosamente');
       }
     } catch (error) {
       console.error('Error toggleando novedad:', error);
+      // Revertir estado optimista en caso de error
+      if (activar) {
+        setOptimisticNovedades(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(codigo);
+          return newSet;
+        });
+      } else {
+        setOptimisticNovedades(prev => new Set(prev).add(codigo));
+      }
     }
   };
 

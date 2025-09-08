@@ -53,3 +53,4 @@ const ToastNotification = ({ message, type = 'error', duration = 4000, onClose }
 };
 
 export default ToastNotification;
+
