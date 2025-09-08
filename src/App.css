@@ -1368,6 +1368,26 @@
   border-color: rgba(220, 53, 69, 0.3);
 }
 
+/* Estados de inhabilitación */
+.taxi-button.inhabilitado {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  opacity: 0.9;
+}
+
+.taxi-button.inhabilitado:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+  transform: none;
+  box-shadow: none;
+}
+
+.taxi-counter.inhabilitado {
+  background: rgba(239, 68, 68, 0.05) !important;
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+}
+
 /* Pantalla de carga */
 .loading-container {
   display: flex;
