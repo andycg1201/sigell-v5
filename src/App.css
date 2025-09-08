@@ -520,7 +520,8 @@
 .admin-panel-header .btn-cierre-manual,
 .admin-panel-header .btn-archivos,
 .admin-panel-header .btn-debug,
-.admin-panel-header .btn-forzar-cierre {
+.admin-panel-header .btn-forzar-cierre,
+.admin-panel-header .btn-limpiar-cache {
   padding: 6px 12px;
   border: none;
   border-radius: 4px;
@@ -560,12 +561,18 @@
   color: white;
 }
 
+.admin-panel-header .btn-limpiar-cache {
+  background: #20c997;
+  color: white;
+}
+
 .admin-panel-header .btn-stats:hover, 
 .admin-panel-header .btn-export:hover,
 .admin-panel-header .btn-cierre-manual:hover:not(:disabled),
 .admin-panel-header .btn-archivos:hover,
 .admin-panel-header .btn-debug:hover,
-.admin-panel-header .btn-forzar-cierre:hover:not(:disabled) {
+.admin-panel-header .btn-forzar-cierre:hover:not(:disabled),
+.admin-panel-header .btn-limpiar-cache:hover {
   opacity: 0.8;
 }
 
@@ -781,6 +788,13 @@
   color: #6c757d;
   font-size: 12px;
   font-style: italic;
+}
+
+.pedido-estado-texto {
+  color: #495057;
+  font-size: 12px;
+  font-weight: bold;
+  margin-top: 4px;
 }
 
 .pedido-estado {

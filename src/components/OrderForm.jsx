@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getClientByPhone, addClient } from '../firebase/clients';
 import { addOrder } from '../firebase/orders';
 import ClientModal from './ClientModal';
+import { focusTelefonoFieldDelayed } from '../utils/focusUtils';
 
 const OrderForm = ({ onAddOrder }) => {
   const [formData, setFormData] = useState({
@@ -105,6 +106,9 @@ const OrderForm = ({ onAddOrder }) => {
         observaciones: '',
         qse: false
       });
+
+      // Enfocar automáticamente el campo de teléfono
+      focusTelefonoFieldDelayed();
     } catch (error) {
       console.error('Error creando pedido:', error);
       alert('Error al crear el pedido. Intente nuevamente.');
@@ -122,6 +126,9 @@ const OrderForm = ({ onAddOrder }) => {
       // Cerrar modal
       setShowClientModal(false);
       setPendingOrder(null);
+
+      // Enfocar automáticamente el campo de teléfono
+      focusTelefonoFieldDelayed();
     } catch (error) {
       console.error('Error guardando cliente:', error);
       alert('Error al guardar el cliente. Intente nuevamente.');

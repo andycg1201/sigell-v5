@@ -25,11 +25,47 @@ export const CierreProvider = ({ children }) => {
   });
   const [pedidosArchivados, setPedidosArchivados] = useState([]);
   const [fechasArchivadas, setFechasArchivadas] = useState([]);
+  
+  // Cache local para evitar consultas innecesarias
+  const [cacheLocal, setCacheLocal] = useState({
+    ultimaVerificacion: null,
+    estadoCache: null,
+    fechaCache: null
+  });
 
-  // Verificar estado del cierre al inicializar
-  const verificarEstadoCierre = useCallback(async () => {
+  // Verificar estado del cierre con cache optimizado
+  const verificarEstadoCierre = useCallback(async (forzarConsulta = false) => {
     try {
+      const hoy = new Date().toISOString().split('T')[0];
+      const ahora = Date.now();
+      
+      // Verificar cache local (válido por 30 minutos)
+      if (!forzarConsulta && 
+          cacheLocal.estadoCache && 
+          cacheLocal.fechaCache === hoy &&
+          cacheLocal.ultimaVerificacion &&
+          (ahora - cacheLocal.ultimaVerificacion) < 1800000) { // 30 minutos
+        
+        console.log('Usando cache local para estado de cierre');
+        setEstadoCierre(prev => ({
+          ...prev,
+          ...cacheLocal.estadoCache,
+          procesando: false
+        }));
+        return cacheLocal.estadoCache;
+      }
+      
+      // Consultar Firebase solo si es necesario
+      console.log('Consultando Firebase para estado de cierre');
       const estado = await verificarCierreDelDia();
+      
+      // Actualizar cache local
+      setCacheLocal({
+        ultimaVerificacion: ahora,
+        estadoCache: estado,
+        fechaCache: hoy
+      });
+      
       setEstadoCierre(prev => ({
         ...prev,
         ...estado,
@@ -46,7 +82,7 @@ export const CierreProvider = ({ children }) => {
       }));
       throw error;
     }
-  }, []);
+  }, [cacheLocal]);
 
   // Ejecutar cierre manual
   const ejecutarCierreManual = useCallback(async () => {
@@ -73,15 +109,23 @@ export const CierreProvider = ({ children }) => {
     }
   }, [verificarEstadoCierre]);
 
-  // Verificar cierre automático a medianoche
+  // Verificar cierre automático optimizado
   const verificarCierreAutomatico = useCallback(async () => {
     try {
-      const estado = await verificarCierreDelDia();
+      // Usar cache si está disponible, sino consultar Firebase
+      const estado = await verificarEstadoCierre();
       
       if (estado.necesitaCierre) {
         console.log('Ejecutando cierre automático...');
         // Usar la fecha del último cierre para archivar los pedidos
         const resultado = await ejecutarCierreDelDia(estado.ultimoCierre);
+        
+        // Limpiar cache después del cierre
+        setCacheLocal({
+          ultimaVerificacion: null,
+          estadoCache: null,
+          fechaCache: null
+        });
         
         // Actualizar estado
         setEstadoCierre(prev => ({
@@ -99,7 +143,7 @@ export const CierreProvider = ({ children }) => {
       console.error('Error en cierre automático:', error);
       throw error;
     }
-  }, []);
+  }, [verificarEstadoCierre]);
 
   // Obtener pedidos archivados por fecha
   const obtenerPedidosArchivados = useCallback(async (fecha) => {
@@ -113,10 +157,32 @@ export const CierreProvider = ({ children }) => {
     }
   }, []);
 
-  // Obtener lista de fechas archivadas
-  const obtenerFechasArchivadas = useCallback(async () => {
+  // Obtener lista de fechas archivadas con cache
+  const obtenerFechasArchivadas = useCallback(async (forzarConsulta = false) => {
     try {
+      // Cache de fechas archivadas (válido por 1 hora)
+      const ahora = Date.now();
+      const cacheKey = 'fechasArchivadas';
+      const cacheData = localStorage.getItem(cacheKey);
+      
+      if (!forzarConsulta && cacheData) {
+        const { fechas, timestamp } = JSON.parse(cacheData);
+        if ((ahora - timestamp) < 3600000) { // 1 hora
+          console.log('Usando cache para fechas archivadas');
+          setFechasArchivadas(fechas);
+          return fechas;
+        }
+      }
+      
+      console.log('Consultando Firebase para fechas archivadas');
       const fechas = await getFechasArchivadas();
+      
+      // Guardar en cache local
+      localStorage.setItem(cacheKey, JSON.stringify({
+        fechas,
+        timestamp: ahora
+      }));
+      
       setFechasArchivadas(fechas);
       return fechas;
     } catch (error) {
@@ -125,20 +191,25 @@ export const CierreProvider = ({ children }) => {
     }
   }, []);
 
-  // Timer para verificar medianoche
+  // Timer optimizado para verificar medianoche
   useEffect(() => {
     const checkMidnight = () => {
       const now = new Date();
-      if (now.getHours() === 0 && now.getMinutes() === 0) {
-        console.log('Medianoche detectada, verificando cierre automático...');
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      
+      // Solo verificar en la ventana de medianoche (23:58 - 00:02)
+      if ((currentHour === 23 && currentMinute >= 58) || 
+          (currentHour === 0 && currentMinute <= 2)) {
+        console.log('Ventana de medianoche detectada, verificando cierre automático...');
         verificarCierreAutomatico().catch(error => {
           console.error('Error en cierre automático de medianoche:', error);
         });
       }
     };
 
-    // Verificar cada minuto
-    const interval = setInterval(checkMidnight, 60000);
+    // Verificar cada 5 minutos (reducido de 1 minuto)
+    const interval = setInterval(checkMidnight, 300000);
     
     // Verificar inmediatamente al cargar
     checkMidnight();
@@ -153,6 +224,17 @@ export const CierreProvider = ({ children }) => {
     });
   }, [verificarEstadoCierre]);
 
+  // Función para limpiar cache
+  const limpiarCache = useCallback(() => {
+    console.log('Limpiando cache local...');
+    setCacheLocal({
+      ultimaVerificacion: null,
+      estadoCache: null,
+      fechaCache: null
+    });
+    localStorage.removeItem('fechasArchivadas');
+  }, []);
+
   const value = {
     estadoCierre,
     pedidosArchivados,
@@ -161,7 +243,8 @@ export const CierreProvider = ({ children }) => {
     ejecutarCierreManual,
     verificarCierreAutomatico,
     obtenerPedidosArchivados,
-    obtenerFechasArchivadas
+    obtenerFechasArchivadas,
+    limpiarCache
   };
 
   return (

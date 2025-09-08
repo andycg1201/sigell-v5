@@ -4,6 +4,7 @@ import { getClientByPhone, addClient } from '../firebase/clients';
 import { addOrder, updateOrder, deleteOrder } from '../firebase/orders';
 import ReassignmentHistory from './ReassignmentHistory';
 import ClientModal from './ClientModal';
+import { focusTelefonoFieldDelayed } from '../utils/focusUtils';
 
 const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) => {
   const { selectedOrderId, selectOrder } = useSelection();
@@ -224,6 +225,9 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
         cantidad: 1,
         qse: false
       });
+
+      // Enfocar automáticamente el campo de teléfono
+      focusTelefonoFieldDelayed();
     } catch (error) {
       console.error('Error creando pedidos:', error);
       alert('Error al crear los pedidos. Intente nuevamente.');
@@ -238,6 +242,9 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
       // Cerrar modal
       setShowClientModal(false);
       setPendingOrder(null);
+
+      // Enfocar automáticamente el campo de teléfono
+      focusTelefonoFieldDelayed();
       
       // Mover foco al campo cantidad
       if (cantidadInputRef) {
@@ -343,6 +350,9 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
         if (onDeleteOrder) {
           await onDeleteOrder(orderId);
         }
+
+        // Enfocar automáticamente el campo de teléfono
+        focusTelefonoFieldDelayed();
       }
     } catch (error) {
       console.error('Error eliminando pedido:', error);

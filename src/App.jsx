@@ -13,6 +13,7 @@ import Header from './components/Header';
 import TaxiGrid from './components/TaxiGrid';
 import OrdersTable from './components/OrdersTable';
 import ToastNotification from './components/ToastNotification';
+import { focusTelefonoFieldDelayed, setupAutoFocusOnLoad } from './utils/focusUtils';
 import './App.css';
 
 // Componente para inicializar el sistema
@@ -67,6 +68,14 @@ const AppContent = () => {
       });
 
       return () => unsubscribe();
+    }
+  }, [user]);
+
+  // Configurar auto-foco al cargar la página y regresar a la pestaña
+  useEffect(() => {
+    if (user) {
+      const cleanup = setupAutoFocusOnLoad();
+      return cleanup;
     }
   }, [user]);
 
@@ -132,6 +141,9 @@ const AppContent = () => {
       // No agregar manualmente al estado local - el listener de Firebase se encargará
       console.log('Pedido desde base creado exitosamente:', newOrder);
       
+      // Enfocar automáticamente el campo de teléfono
+      focusTelefonoFieldDelayed();
+      
     } catch (error) {
       console.error('Error creando pedido desde base:', error);
       alert('Error creando pedido desde base. Intente nuevamente.');
@@ -187,6 +199,10 @@ const AppContent = () => {
         }
         return order;
       }));
+
+      // Enfocar automáticamente el campo de teléfono
+      focusTelefonoFieldDelayed();
+      
     } catch (error) {
       console.error('Error asignando unidad:', error);
       alert('Error al asignar la unidad. Intente nuevamente.');

@@ -11,7 +11,7 @@ const Header = ({ user }) => {
   const { totalTaxis, updateConfig } = useTaxis();
   const { bases, updateConfig: updateBasesConfig } = useBases();
   const { novedadesConfig, updateConfig: updateNovedadesConfig } = useNovedades();
-  const { estadoCierre, ejecutarCierreManual } = useCierre();
+  const { estadoCierre, ejecutarCierreManual, limpiarCache } = useCierre();
   const [newTotal, setNewTotal] = React.useState(totalTaxis);
   const [loading, setLoading] = React.useState(false);
   const [isAdminOpen, setIsAdminOpen] = React.useState(false);
@@ -225,6 +225,20 @@ const Header = ({ user }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Función para limpiar cache
+  const handleLimpiarCache = () => {
+    const confirmar = window.confirm(
+      `🧹 Limpiar Cache\n\n` +
+      `Esto limpiará el cache local y forzará nuevas consultas a Firebase.\n` +
+      `¿Está seguro de continuar?`
+    );
+
+    if (!confirmar) return;
+
+    limpiarCache();
+    alert('Cache limpiado exitosamente. Las próximas consultas serán a Firebase.');
   };
 
   const getCurrentDateTime = () => {
@@ -511,6 +525,12 @@ const Header = ({ user }) => {
                       disabled={loading}
                     >
                       ⚡ Forzar Cierre
+                    </button>
+                    <button 
+                      className="btn-limpiar-cache"
+                      onClick={handleLimpiarCache}
+                    >
+                      🧹 Limpiar Cache
                     </button>
                     <button className="btn-stats">📊 Estadísticas</button>
                     <button className="btn-export">📤 Exportar</button>

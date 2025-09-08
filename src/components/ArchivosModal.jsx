@@ -14,12 +14,13 @@ const ArchivosModal = ({ isOpen, onClose }) => {
   const [filtroPedidos, setFiltroPedidos] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState('todos'); // todos, asignados, no-asignados
 
-  // Cargar fechas archivadas al abrir el modal
+  // Cargar fechas archivadas solo cuando se abre el modal
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && fechasArchivadas.length === 0) {
+      console.log('Modal abierto, cargando fechas archivadas...');
       obtenerFechasArchivadas();
     }
-  }, [isOpen, obtenerFechasArchivadas]);
+  }, [isOpen, obtenerFechasArchivadas, fechasArchivadas.length]);
 
   // Cargar pedidos cuando se selecciona una fecha
   useEffect(() => {
@@ -75,15 +76,25 @@ const ArchivosModal = ({ isOpen, onClose }) => {
 
     const csvContent = [
       headers.join(','),
-      ...pedidosFiltrados.map(pedido => [
-        pedido.id || '',
-        `"${pedido.direccion || ''}"`,
-        pedido.unidadAsignada || 'Sin asignar',
-        pedido.estado || 'Pendiente',
-        pedido.horaPedido || '',
-        pedido.horaAsignacion || '',
-        `"${pedido.observaciones || ''}"`
-      ].join(','))
+      ...pedidosFiltrados.map(pedido => {
+        // Manejar diferentes estructuras de datos
+        const direccion = pedido.direccion || pedido.destino || pedido.direccionDestino || '';
+        const unidad = pedido.unidadAsignada || pedido.taxiAsignado || pedido.unidad || 'Sin asignar';
+        const horaPedido = pedido.horaPedido || pedido.fechaHora || pedido.timestamp || '';
+        const horaAsignacion = pedido.horaAsignacion || pedido.fechaAsignacion || '';
+        const observaciones = pedido.observaciones || pedido.obs || pedido.notas || '';
+        const estado = pedido.estado || (unidad !== 'Sin asignar' ? 'Asignado' : 'Pendiente');
+        
+        return [
+          pedido.id || '',
+          `"${direccion}"`,
+          unidad,
+          estado,
+          horaPedido,
+          horaAsignacion,
+          `"${observaciones}"`
+        ].join(',');
+      })
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -213,29 +224,42 @@ const ArchivosModal = ({ isOpen, onClose }) => {
                   <div className="loading">🔄 Cargando pedidos...</div>
                 ) : (
                   <div className="pedidos-container">
-                    {pedidosFiltrados.map((pedido, index) => (
-                      <div key={pedido.id || index} className="pedido-item">
-                        <div className="pedido-info">
-                          <div className="pedido-id">#{pedido.id || index + 1}</div>
-                          <div className="pedido-direccion">{pedido.direccion || 'Sin dirección'}</div>
-                          <div className="pedido-unidad">
-                            {pedido.unidadAsignada ? `Unidad: ${pedido.unidadAsignada}` : 'Sin asignar'}
-                          </div>
-                          <div className="pedido-hora">
-                            {pedido.horaPedido && `Pedido: ${pedido.horaPedido}`}
-                            {pedido.horaAsignacion && ` | Asignado: ${pedido.horaAsignacion}`}
-                          </div>
-                          {pedido.observaciones && (
-                            <div className="pedido-observaciones">
-                              Obs: {pedido.observaciones}
+                    {pedidosFiltrados.map((pedido, index) => {
+                      // Manejar diferentes estructuras de datos
+                      const direccion = pedido.direccion || pedido.destino || pedido.direccionDestino || 'Sin dirección';
+                      const unidad = pedido.unidadAsignada || pedido.taxiAsignado || pedido.unidad;
+                      const horaPedido = pedido.horaPedido || pedido.fechaHora || pedido.timestamp;
+                      const horaAsignacion = pedido.horaAsignacion || pedido.fechaAsignacion;
+                      const observaciones = pedido.observaciones || pedido.obs || pedido.notas;
+                      const estado = pedido.estado || (unidad ? 'Asignado' : 'Pendiente');
+                      
+                      return (
+                        <div key={pedido.id || index} className="pedido-item">
+                          <div className="pedido-info">
+                            <div className="pedido-id">#{pedido.id || index + 1}</div>
+                            <div className="pedido-direccion">{direccion}</div>
+                            <div className="pedido-unidad">
+                              {unidad ? `Unidad: ${unidad}` : 'Sin asignar'}
                             </div>
-                          )}
+                            <div className="pedido-hora">
+                              {horaPedido && `Pedido: ${horaPedido}`}
+                              {horaAsignacion && ` | Asignado: ${horaAsignacion}`}
+                            </div>
+                            {observaciones && (
+                              <div className="pedido-observaciones">
+                                Obs: {observaciones}
+                              </div>
+                            )}
+                            <div className="pedido-estado-texto">
+                              Estado: {estado}
+                            </div>
+                          </div>
+                          <div className={`pedido-estado ${unidad ? 'asignado' : 'pendiente'}`}>
+                            {unidad ? '✅' : '⏳'}
+                          </div>
                         </div>
-                        <div className={`pedido-estado ${pedido.unidadAsignada ? 'asignado' : 'pendiente'}`}>
-                          {pedido.unidadAsignada ? '✅' : '⏳'}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
