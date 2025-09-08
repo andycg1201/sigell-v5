@@ -45,7 +45,12 @@ export const addOrder = async (orderData) => {
       createdAt: serverTimestamp()
     });
     
-    return docRef.id;
+    // Retornar el objeto completo con el ID
+    return {
+      id: docRef.id,
+      ...orderData,
+      createdAt: new Date()
+    };
   } catch (error) {
     console.error('Error agregando pedido:', error);
     throw error;

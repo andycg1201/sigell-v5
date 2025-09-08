@@ -120,9 +120,7 @@ const AppContent = () => {
       console.log('Creando pedido desde base: incrementando contador del taxi', unitNumber);
       await incrementTaxiCounter(unitNumber);
 
-      // Agregar pedido al estado local
-      setOrders(prev => [newOrder, ...prev]);
-      
+      // No agregar manualmente al estado local - el listener de Firebase se encargará
       console.log('Pedido desde base creado exitosamente:', newOrder);
       
     } catch (error) {
