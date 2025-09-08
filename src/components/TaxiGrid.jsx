@@ -4,7 +4,7 @@ import { useBases } from '../contexts/BasesContext';
 import TaxiButton from './TaxiButton';
 import BaseSelectionModal from './BaseSelectionModal';
 
-const TaxiGrid = ({ onAssignUnit, orders, onCreateBaseOrder }) => {
+const TaxiGrid = ({ onAssignUnit, orders, onCreateBaseOrder, onShowToast }) => {
   const { taxis, loading } = useTaxis();
   const { bases } = useBases();
   const [showBaseModal, setShowBaseModal] = useState(false);
@@ -50,6 +50,7 @@ const TaxiGrid = ({ onAssignUnit, orders, onCreateBaseOrder }) => {
             orders={orders}
             onCreateBaseOrder={onCreateBaseOrder}
             onShowBaseModal={handleShowBaseModal}
+            onShowToast={onShowToast}
           />
         ))}
       </div>

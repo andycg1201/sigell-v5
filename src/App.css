@@ -761,6 +761,38 @@
   cursor: not-allowed;
 }
 
+/* Badge de novedades */
+.taxi-button {
+  position: relative;
+}
+
+.novedades-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+  border: 2px solid white;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.novedades-badge:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  transform: scale(1.1);
+  box-shadow: 0 3px 12px rgba(220, 38, 38, 0.5);
+}
+
 .taxi-counter {
   background: rgba(40, 167, 69, 0.05);
   color: #000000;
@@ -1453,6 +1485,180 @@
   flex-direction: row;
   align-items: center;
   gap: 8px;
+}
+
+/* Estilos para configuración de novedades */
+.novedades-config-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.novedades-editor {
+  margin-top: 12px;
+}
+
+.novedad-editor-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.novedad-input {
+  padding: 6px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.novedad-input.codigo {
+  width: 60px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.novedad-input.descripcion {
+  flex: 1;
+}
+
+.novedad-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #495057;
+  cursor: pointer;
+}
+
+.novedad-checkbox input[type="checkbox"] {
+  margin: 0;
+}
+
+.remove-novedad-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.remove-novedad-btn:hover {
+  background: #c82333;
+}
+
+.novedades-actions {
+  margin: 12px 0;
+  text-align: center;
+}
+
+.add-novedad-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.add-novedad-btn:hover {
+  background: #218838;
+}
+
+.novedades-save-cancel {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.save-novedades-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.save-novedades-btn:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.save-novedades-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.cancel-novedades-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.cancel-novedades-btn:hover:not(:disabled) {
+  background: #545b62;
+}
+
+.cancel-novedades-btn:disabled {
+  background: #adb5bd;
+  cursor: not-allowed;
+}
+
+.novedades-list {
+  margin-top: 12px;
+}
+
+.novedad-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.novedad-item strong {
+  color: #dc2626;
+  font-weight: 700;
+  min-width: 40px;
+}
+
+.novedad-item span:not(.status) {
+  flex: 1;
+  color: #495057;
+}
+
+.novedad-item .status.activa {
+  color: #28a745;
+}
+
+.novedad-item .status.inactiva {
+  color: #dc3545;
 }
 
 .checkbox-group label {

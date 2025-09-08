@@ -2,15 +2,19 @@ import React from 'react';
 import { logout } from '../firebase/auth';
 import { useTaxis } from '../contexts/TaxisContext';
 import { useBases } from '../contexts/BasesContext';
+import { useNovedades } from '../contexts/NovedadesContext';
 
 const Header = ({ user }) => {
   const { totalTaxis, updateConfig } = useTaxis();
   const { bases, updateConfig: updateBasesConfig } = useBases();
+  const { novedadesConfig, updateConfig: updateNovedadesConfig } = useNovedades();
   const [newTotal, setNewTotal] = React.useState(totalTaxis);
   const [loading, setLoading] = React.useState(false);
   const [isAdminOpen, setIsAdminOpen] = React.useState(false);
   const [editingBases, setEditingBases] = React.useState(false);
   const [tempBases, setTempBases] = React.useState([]);
+  const [editingNovedades, setEditingNovedades] = React.useState(false);
+  const [tempNovedades, setTempNovedades] = React.useState([]);
 
   const handleLogout = async () => {
     try {
@@ -83,6 +87,54 @@ const Header = ({ user }) => {
       return;
     }
     setTempBases(tempBases.filter((_, i) => i !== index));
+  };
+
+  // Funciones para manejar novedades
+  const handleEditNovedades = () => {
+    setTempNovedades([...novedadesConfig.novedades]);
+    setEditingNovedades(true);
+  };
+
+  const handleSaveNovedades = async () => {
+    setLoading(true);
+    try {
+      await updateNovedadesConfig({ ...novedadesConfig, novedades: tempNovedades });
+      setEditingNovedades(false);
+      alert('Novedades actualizadas correctamente');
+    } catch (error) {
+      console.error('Error actualizando novedades:', error);
+      alert('Error actualizando novedades');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelNovedades = () => {
+    setEditingNovedades(false);
+    setTempNovedades([]);
+  };
+
+  const handleNovedadChange = (index, field, value) => {
+    const newNovedades = [...tempNovedades];
+    newNovedades[index] = { ...newNovedades[index], [field]: value };
+    setTempNovedades(newNovedades);
+  };
+
+  const addNovedad = () => {
+    if (tempNovedades.length >= 20) {
+      alert('Máximo 20 novedades permitidas');
+      return;
+    }
+    const newId = Math.max(...tempNovedades.map(n => parseInt(n.codigo.replace('B', '')) || 0), 0) + 1;
+    setTempNovedades([...tempNovedades, { codigo: `B${newId.toString().padStart(2, '0')}`, descripcion: '', activa: true }]);
+  };
+
+  const removeNovedad = (index) => {
+    if (tempNovedades.length <= 1) {
+      alert('Debe haber al menos una novedad');
+      return;
+    }
+    setTempNovedades(tempNovedades.filter((_, i) => i !== index));
   };
 
   const getCurrentDateTime = () => {
@@ -236,6 +288,92 @@ const Header = ({ user }) => {
                           <div key={base.id} className="base-item">
                             <strong>{base.nombre}</strong>
                             <span>{base.direccion || 'Sin dirección'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Configuración de Novedades */}
+                  <div className="novedades-config-section">
+                    <div className="section-header">
+                      <h4>🚨 Configuración de Novedades</h4>
+                      <button 
+                        className="edit-novedades-btn"
+                        onClick={handleEditNovedades}
+                        disabled={editingNovedades}
+                      >
+                        {editingNovedades ? 'Editando...' : '✏️ Editar Novedades'}
+                      </button>
+                    </div>
+                    
+                    {editingNovedades ? (
+                      <div className="novedades-editor">
+                        {tempNovedades.map((novedad, index) => (
+                          <div key={index} className="novedad-editor-row">
+                            <input
+                              type="text"
+                              className="novedad-input codigo"
+                              value={novedad.codigo}
+                              onChange={(e) => handleNovedadChange(index, 'codigo', e.target.value)}
+                              placeholder="Código (ej: B54)"
+                            />
+                            <input
+                              type="text"
+                              className="novedad-input descripcion"
+                              value={novedad.descripcion}
+                              onChange={(e) => handleNovedadChange(index, 'descripcion', e.target.value)}
+                              placeholder="Descripción"
+                            />
+                            <label className="novedad-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={novedad.activa}
+                                onChange={(e) => handleNovedadChange(index, 'activa', e.target.checked)}
+                              />
+                              Activa
+                            </label>
+                            <button 
+                              className="remove-novedad-btn"
+                              onClick={() => removeNovedad(index)}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        ))}
+                        
+                        <div className="novedades-actions">
+                          <button className="add-novedad-btn" onClick={addNovedad}>
+                            ➕ Agregar Novedad
+                          </button>
+                        </div>
+                        
+                        <div className="novedades-save-cancel">
+                          <button 
+                            className="save-novedades-btn"
+                            onClick={handleSaveNovedades}
+                            disabled={loading}
+                          >
+                            {loading ? 'Guardando...' : '💾 Guardar'}
+                          </button>
+                          <button 
+                            className="cancel-novedades-btn"
+                            onClick={handleCancelNovedades}
+                            disabled={loading}
+                          >
+                            ❌ Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="novedades-list">
+                        {novedadesConfig.novedades?.map((novedad, index) => (
+                          <div key={index} className="novedad-item">
+                            <strong>{novedad.codigo}</strong>
+                            <span>{novedad.descripcion || 'Sin descripción'}</span>
+                            <span className={`status ${novedad.activa ? 'activa' : 'inactiva'}`}>
+                              {novedad.activa ? '✅' : '❌'}
+                            </span>
                           </div>
                         ))}
                       </div>

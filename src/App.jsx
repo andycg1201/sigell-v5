@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TaxisProvider, useTaxis } from './contexts/TaxisContext';
 import { BasesProvider } from './contexts/BasesContext';
 import { SelectionProvider } from './contexts/SelectionContext';
+import { NovedadesProvider } from './contexts/NovedadesContext';
 import { createAdminUser } from './firebase/auth';
 import { subscribeToOrders, updateOrder, addOrder } from './firebase/orders';
 import { incrementTaxiCounter, decrementTaxiCounter } from './firebase/taxis';
@@ -10,6 +11,7 @@ import Login from './components/Login';
 import Header from './components/Header';
 import TaxiGrid from './components/TaxiGrid';
 import OrdersTable from './components/OrdersTable';
+import ToastNotification from './components/ToastNotification';
 import './App.css';
 
 // Componente para inicializar el sistema
@@ -49,6 +51,12 @@ const AppContent = () => {
   const { user, loading } = useAuth();
   const { loading: taxisLoading } = useTaxis();
   const [orders, setOrders] = useState([]);
+  const [toast, setToast] = useState(null);
+
+  // Función para mostrar toast
+  const showToast = (message, type = 'error') => {
+    setToast({ message, type });
+  };
 
   // Cargar pedidos desde Firebase
   useEffect(() => {
@@ -201,9 +209,18 @@ const AppContent = () => {
     <div className="app">
       <Header user={user} />
       <main className="main-content">
-        <TaxiGrid onAssignUnit={handleAssignUnit} orders={orders} onCreateBaseOrder={handleCreateBaseOrder} />
+        <TaxiGrid onAssignUnit={handleAssignUnit} orders={orders} onCreateBaseOrder={handleCreateBaseOrder} onShowToast={showToast} />
         <OrdersTable orders={orders} onAddOrder={handleAddOrder} onDeleteOrder={handleDeleteOrder} onUpdateOrder={handleUpdateOrder} />
       </main>
+      
+      {/* Toast Notification */}
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };
@@ -213,12 +230,14 @@ const App = () => {
   return (
     <AuthProvider>
       <BasesProvider>
-        <SystemInitializer />
-        <TaxisProvider>
-          <SelectionProvider>
-            <AppContent />
-          </SelectionProvider>
-        </TaxisProvider>
+        <NovedadesProvider>
+          <SystemInitializer />
+          <TaxisProvider>
+            <SelectionProvider>
+              <AppContent />
+            </SelectionProvider>
+          </TaxisProvider>
+        </NovedadesProvider>
       </BasesProvider>
     </AuthProvider>
   );
