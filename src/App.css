@@ -1172,6 +1172,178 @@
   box-shadow: 0 3px 12px rgba(220, 38, 38, 0.5);
 }
 
+/* Badge de conteo de inhabilitaciones */
+.inhabilitacion-badge-count {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  background: #8b5cf6; /* Color morado */
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  border: 1px solid white;
+  box-shadow: 0 1px 4px rgba(139, 92, 246, 0.4);
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.inhabilitacion-badge-count:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 12px rgba(139, 92, 246, 0.6);
+  background: #7c3aed; /* Morado más oscuro al hover */
+}
+
+/* Overlay de fondo para popup */
+.inhabilitacion-popup::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: -1;
+}
+
+/* Popup de inhabilitaciones */
+.inhabilitacion-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  border: 3px solid #8b5cf6;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(139, 92, 246, 0.5);
+  z-index: 9999;
+  width: 280px;
+  font-size: 12px;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.popup-header {
+  background: #8b5cf6;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px 4px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 11px;
+}
+
+.popup-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.popup-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.popup-content {
+  padding: 8px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.motivo-item {
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.motivo-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.motivo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.motivo-codigo {
+  font-weight: bold;
+  font-size: 13px;
+  color: #8b5cf6;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #e5e7eb;
+}
+
+.motivo-concepto {
+  font-weight: bold;
+  color: #8b5cf6;
+  font-size: 13px;
+}
+
+.motivo-details {
+  margin-left: 16px;
+}
+
+.motivo-details > div {
+  margin-bottom: 2px;
+  color: #6b7280;
+  font-size: 10px;
+}
+
+.motivo-details .responsable {
+  color: #374151;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.motivo-details strong {
+  color: #374151;
+}
+
+.resolver-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 10px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.resolver-btn:hover {
+  background: #059669;
+  transform: scale(1.1);
+}
+
 .taxi-counter {
   background: rgba(40, 167, 69, 0.05);
   color: #000000;
@@ -1873,6 +2045,161 @@
   background: #f8f9fa;
   border-radius: 8px;
   border: 1px solid #e9ecef;
+}
+
+/* Estilos para motivos de inhabilitación */
+.motivos-config-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.motivos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.motivo-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.motivo-icono {
+  font-size: 16px;
+  min-width: 20px;
+}
+
+.motivo-codigo {
+  font-weight: bold;
+  color: #495057;
+  min-width: 40px;
+}
+
+.motivo-concepto {
+  flex: 1;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.motivos-editor {
+  background: white;
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid #dee2e6;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.add-motivo-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-motivo-btn:hover {
+  background: #218838;
+}
+
+.motivos-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.motivo-editor-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 60px 60px 80px 40px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.motivo-input {
+  padding: 6px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.motivo-input.codigo {
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.motivo-input.color {
+  padding: 2px;
+  height: 32px;
+}
+
+.motivo-input.icono {
+  text-align: center;
+}
+
+.motivo-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #495057;
+}
+
+.remove-motivo-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.remove-motivo-btn:hover {
+  background: #c82333;
+}
+
+.edit-motivos-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-motivos-btn:hover:not(:disabled) {
+  background: #5a6268;
+}
+
+.edit-motivos-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .novedades-editor {

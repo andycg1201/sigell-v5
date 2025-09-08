@@ -5,6 +5,7 @@ import { useBases } from '../contexts/BasesContext';
 import { useNovedades } from '../contexts/NovedadesContext';
 import { useCierre } from '../contexts/CierreContext';
 import { debugEstadoPedidos, forzarCierreDelDia } from '../firebase/cierre';
+import { getMotivosInhabilitacion, updateMotivosInhabilitacion } from '../firebase/inhabilitaciones';
 import ArchivosModal from './ArchivosModal';
 
 const Header = ({ user }) => {
@@ -20,6 +21,9 @@ const Header = ({ user }) => {
   const [editingNovedades, setEditingNovedades] = React.useState(false);
   const [tempNovedades, setTempNovedades] = React.useState([]);
   const [showArchivosModal, setShowArchivosModal] = React.useState(false);
+  const [editingMotivos, setEditingMotivos] = React.useState(false);
+  const [tempMotivos, setTempMotivos] = React.useState([]);
+  const [motivosConfig, setMotivosConfig] = React.useState(null);
 
   const handleLogout = async () => {
     try {
@@ -147,6 +151,54 @@ const Header = ({ user }) => {
     setTempNovedades(tempNovedades.filter((_, i) => i !== index));
   };
 
+  // Funciones para motivos de inhabilitación
+  const handleEditMotivos = () => {
+    setEditingMotivos(true);
+    setTempMotivos([...motivosConfig.motivos]);
+  };
+
+  const handleSaveMotivos = async () => {
+    try {
+      await updateMotivosInhabilitacion(tempMotivos);
+      setMotivosConfig({ ...motivosConfig, motivos: tempMotivos });
+      setEditingMotivos(false);
+      alert('Motivos de inhabilitación actualizados correctamente');
+    } catch (error) {
+      console.error('Error actualizando motivos:', error);
+      alert('Error actualizando motivos de inhabilitación');
+    }
+  };
+
+  const handleCancelMotivos = () => {
+    setEditingMotivos(false);
+    setTempMotivos([]);
+  };
+
+  const handleMotivoChange = (index, field, value) => {
+    const newMotivos = [...tempMotivos];
+    newMotivos[index] = { ...newMotivos[index], [field]: value };
+    setTempMotivos(newMotivos);
+  };
+
+  const addMotivo = () => {
+    if (tempMotivos.length >= 5) {
+      alert('Máximo 5 motivos permitidos');
+      return;
+    }
+    setTempMotivos([...tempMotivos, {
+      codigo: '',
+      concepto: '',
+      color: '#dc2626',
+      icono: '🚫',
+      activo: true
+    }]);
+  };
+
+  const removeMotivo = (index) => {
+    const newMotivos = tempMotivos.filter((_, i) => i !== index);
+    setTempMotivos(newMotivos);
+  };
+
   // Función para manejar cierre manual
   const handleCierreManual = async () => {
     if (!estadoCierre.necesitaCierre) {
@@ -262,6 +314,19 @@ const Header = ({ user }) => {
     }, 1000);
 
     return () => clearInterval(interval);
+  }, []);
+
+  // Cargar configuración de motivos de inhabilitación
+  React.useEffect(() => {
+    const loadMotivosConfig = async () => {
+      try {
+        const config = await getMotivosInhabilitacion();
+        setMotivosConfig(config);
+      } catch (error) {
+        console.error('Error cargando configuración de motivos:', error);
+      }
+    };
+    loadMotivosConfig();
   }, []);
 
   return (
@@ -491,6 +556,106 @@ const Header = ({ user }) => {
                             </span>
                           </div>
                         ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Configuración de Motivos de Inhabilitación */}
+                  <div className="motivos-config-section">
+                    <div className="section-header">
+                      <h4>🚫 Motivos de Inhabilitación</h4>
+                      <button 
+                        className="edit-motivos-btn"
+                        onClick={handleEditMotivos}
+                        disabled={editingMotivos}
+                      >
+                        {editingMotivos ? 'Editando...' : '✏️ Editar Motivos'}
+                      </button>
+                    </div>
+                    
+                    {!editingMotivos ? (
+                      <div className="motivos-list">
+                        {motivosConfig?.motivos?.map((motivo, index) => (
+                          <div key={index} className="motivo-item">
+                            <span 
+                              className="motivo-icono" 
+                              style={{ color: motivo.color }}
+                            >
+                              {motivo.icono}
+                            </span>
+                            <span className="motivo-codigo">{motivo.codigo}</span>
+                            <span className="motivo-concepto">{motivo.concepto}</span>
+                            <span className={`status ${motivo.activa ? 'activa' : 'inactiva'}`}>
+                              {motivo.activa ? '✅' : '❌'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="motivos-editor">
+                        <div className="editor-header">
+                          <span>Configurar motivos de inhabilitación (máximo 5)</span>
+                          <button className="add-motivo-btn" onClick={addMotivo}>
+                            ➕ Agregar Motivo
+                          </button>
+                        </div>
+                        
+                        <div className="motivos-editor-list">
+                          {tempMotivos.map((motivo, index) => (
+                            <div key={index} className="motivo-editor-row">
+                              <input
+                                type="text"
+                                className="motivo-input codigo"
+                                value={motivo.codigo}
+                                onChange={(e) => handleMotivoChange(index, 'codigo', e.target.value)}
+                                placeholder="Código (ej: GER)"
+                              />
+                              <input
+                                type="text"
+                                className="motivo-input concepto"
+                                value={motivo.concepto}
+                                onChange={(e) => handleMotivoChange(index, 'concepto', e.target.value)}
+                                placeholder="Concepto"
+                              />
+                              <input
+                                type="color"
+                                className="motivo-input color"
+                                value={motivo.color}
+                                onChange={(e) => handleMotivoChange(index, 'color', e.target.value)}
+                              />
+                              <input
+                                type="text"
+                                className="motivo-input icono"
+                                value={motivo.icono}
+                                onChange={(e) => handleMotivoChange(index, 'icono', e.target.value)}
+                                placeholder="Icono"
+                              />
+                              <label className="motivo-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={motivo.activa}
+                                  onChange={(e) => handleMotivoChange(index, 'activa', e.target.checked)}
+                                />
+                                Activa
+                              </label>
+                              <button 
+                                className="remove-motivo-btn"
+                                onClick={() => removeMotivo(index)}
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <div className="editor-actions">
+                          <button className="cancel-btn" onClick={handleCancelMotivos}>
+                            Cancelar
+                          </button>
+                          <button className="save-btn" onClick={handleSaveMotivos}>
+                            Guardar Cambios
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
