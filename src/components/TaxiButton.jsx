@@ -24,26 +24,13 @@ const TaxiButton = ({ taxi, onAssignUnit, orders }) => {
       if (selectedOrderId) {
         console.log('Asignando unidad', taxi.numero, 'al pedido', selectedOrderId);
         
-        // Buscar el pedido seleccionado para ver si ya tiene unidad
-        const selectedOrder = orders.find(order => order.id === selectedOrderId);
-        
-        // Si ya tiene unidad asignada, decrementar contador del taxi anterior
-        if (selectedOrder && selectedOrder.unidad) {
-          const previousTaxiId = parseInt(selectedOrder.unidad);
-          console.log('Reasignación: decrementando taxi', previousTaxiId);
-          decrementCounter(previousTaxiId);
-        }
-        
-        // Incrementar contador del nuevo taxi
-        incrementCounter(taxi.id);
-        
-        // Asignar unidad
+        // Asignar unidad (los contadores se manejan automáticamente en App.jsx)
         onAssignUnit(selectedOrderId, taxi.numero);
         clearSelection();
         return;
       }
       
-      // Si no hay fila seleccionada, incrementar contador
+      // Si no hay fila seleccionada, incrementar contador manualmente
       try {
         console.log('Incrementando contador para taxi:', taxi.id);
         await incrementCounter(taxi.id);

@@ -338,7 +338,7 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
         
         // Notificar al componente padre para actualizar la lista
         if (onDeleteOrder) {
-          onDeleteOrder(orderId);
+          await onDeleteOrder(orderId);
         }
       }
     } catch (error) {

@@ -4,6 +4,7 @@ import { TaxisProvider, useTaxis } from './contexts/TaxisContext';
 import { SelectionProvider } from './contexts/SelectionContext';
 import { createAdminUser } from './firebase/auth';
 import { subscribeToOrders, updateOrder } from './firebase/orders';
+import { incrementTaxiCounter, decrementTaxiCounter } from './firebase/taxis';
 import Login from './components/Login';
 import Header from './components/Header';
 import TaxiGrid from './components/TaxiGrid';
@@ -63,8 +64,25 @@ const AppContent = () => {
     setOrders(prev => [newOrder, ...prev]);
   };
 
-  const handleDeleteOrder = (orderId) => {
-    setOrders(prev => prev.filter(order => order.id !== orderId));
+  const handleDeleteOrder = async (orderId) => {
+    try {
+      // Buscar el pedido antes de eliminarlo para ver si tenía unidad asignada
+      const orderToDelete = orders.find(order => order.id === orderId);
+      
+      if (orderToDelete && orderToDelete.unidad) {
+        // Si tenía unidad asignada, decrementar el contador del taxi
+        const taxiId = parseInt(orderToDelete.unidad);
+        console.log('Eliminación: decrementando contador del taxi', taxiId, 'por pedido eliminado');
+        await decrementTaxiCounter(taxiId);
+      }
+      
+      // Eliminar el pedido del estado local
+      setOrders(prev => prev.filter(order => order.id !== orderId));
+    } catch (error) {
+      console.error('Error manejando contadores al eliminar pedido:', error);
+      // Aún así eliminar el pedido del estado local
+      setOrders(prev => prev.filter(order => order.id !== orderId));
+    }
   };
 
   const handleUpdateOrder = (updatedOrder) => {
@@ -95,10 +113,19 @@ const AppContent = () => {
           ...(order.reasignaciones || []),
           { unidad: order.unidad, hora: order.horaAsignacion }
         ];
+        
+        // Decrementar contador del taxi anterior
+        const previousTaxiId = parseInt(order.unidad);
+        console.log('Reasignación: decrementando contador del taxi', previousTaxiId);
+        await decrementTaxiCounter(previousTaxiId);
       } else {
         // Primera asignación
         updateData.reasignaciones = [];
       }
+
+      // Incrementar contador del nuevo taxi
+      console.log('Asignación: incrementando contador del taxi', unitNumber);
+      await incrementTaxiCounter(unitNumber);
 
       // Actualizar en Firebase
       await updateOrder(orderId, updateData);
