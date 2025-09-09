@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const ClientModal = ({ isOpen, onClose, onSave, phoneNumber }) => {
   const [formData, setFormData] = useState({
@@ -6,6 +6,9 @@ const ClientModal = ({ isOpen, onClose, onSave, phoneNumber }) => {
     direccion: '',
     observaciones: ''
   });
+
+  const direccionRef = useRef(null);
+  const observacionesRef = useRef(null);
 
   // Actualizar el campo teléfono cuando cambie la prop
   useEffect(() => {
@@ -17,12 +20,37 @@ const ClientModal = ({ isOpen, onClose, onSave, phoneNumber }) => {
     }
   }, [phoneNumber]);
 
+  // Foco automático en dirección al abrir el modal
+  useEffect(() => {
+    if (isOpen && direccionRef.current) {
+      setTimeout(() => {
+        direccionRef.current.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleDireccionKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (observacionesRef.current) {
+        observacionesRef.current.focus();
+      }
+    }
+  };
+
+  const handleObservacionesKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit(e);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -65,7 +93,7 @@ const ClientModal = ({ isOpen, onClose, onSave, phoneNumber }) => {
       <div className="modal-content">
         <div className="modal-header">
           <h3>Agregar Cliente Nuevo</h3>
-          <button className="modal-close" onClick={handleClose}>
+          <button className="modal-close" onClick={handleClose} tabIndex={-1}>
             ×
           </button>
         </div>
@@ -80,6 +108,7 @@ const ClientModal = ({ isOpen, onClose, onSave, phoneNumber }) => {
               value={formData.telefono}
               onChange={handleInputChange}
               placeholder="0997652586"
+              disabled
               required
             />
           </div>
@@ -92,7 +121,9 @@ const ClientModal = ({ isOpen, onClose, onSave, phoneNumber }) => {
               name="direccion"
               value={formData.direccion}
               onChange={handleInputChange}
+              onKeyPress={handleDireccionKeyPress}
               placeholder="Los Galeanos y Analia Bernal"
+              ref={direccionRef}
               required
             />
           </div>
@@ -104,16 +135,18 @@ const ClientModal = ({ isOpen, onClose, onSave, phoneNumber }) => {
               name="observaciones"
               value={formData.observaciones}
               onChange={handleInputChange}
+              onKeyPress={handleObservacionesKeyPress}
               placeholder="Cliente siempre pide que lo esperen 5 minutos"
+              ref={observacionesRef}
               rows="3"
             />
           </div>
           
           <div className="modal-actions">
-            <button type="button" className="btn-cancel" onClick={handleClose}>
+            <button type="button" className="btn-cancel" onClick={handleClose} tabIndex={-1}>
               Cancelar
             </button>
-            <button type="submit" className="btn-save">
+            <button type="submit" className="btn-save" tabIndex={-1}>
               Guardar Cliente
             </button>
           </div>

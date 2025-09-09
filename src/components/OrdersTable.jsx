@@ -99,7 +99,7 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
   };
 
   const handleCantidadKeyPress = async (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault();
       
       if (!newOrder.cliente.trim()) {
@@ -424,6 +424,7 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
                     className="cantidad-btn"
                     onClick={() => handleCantidadChange(false)}
                     disabled={newOrder.cantidad <= 1}
+                    tabIndex={-1}
                   >
                     -
                   </button>
@@ -441,6 +442,7 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
                     className="cantidad-btn"
                     onClick={() => handleCantidadChange(true)}
                     disabled={newOrder.cantidad >= 5}
+                    tabIndex={-1}
                   >
                     +
                   </button>
@@ -451,6 +453,7 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
                   className="add-order-button"
                   onClick={handleAddNewOrder}
                   title="Agregar pedido"
+                  tabIndex={-1}
                   style={{
                     background: '#28a745',
                     color: 'white',
@@ -493,12 +496,14 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
                 </td>
               </tr>
             ) : (
-              allOrders.filter(order => order !== null && order !== undefined && order.id).map((order) => (
+              allOrders.filter(order => order !== null && order !== undefined && order.id).map((order) => {
+                const isBaseOrder = !order.hora; // Salida de base si no tiene hora
+                return (
                 <tr 
                   key={order.id} 
-                  className={getRowClass(order)}
-                  onClick={() => handleRowClick(order.id)}
-                  style={{ cursor: 'pointer' }}
+                  className={`${getRowClass(order)} ${isBaseOrder ? 'base-order' : ''}`}
+                  onClick={isBaseOrder ? undefined : () => handleRowClick(order.id)}
+                  style={{ cursor: isBaseOrder ? 'default' : 'pointer' }}
                 >
                   <td className="cliente-field">
                     {order.cliente}
@@ -531,6 +536,7 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
                       <input 
                         type="checkbox" 
                         checked={order.b67 || false}
+                        disabled={isBaseOrder}
                         onChange={(e) => handleConfChange(order.id, e.target.checked)}
                       />
                       {order.b67 && order.horaConfirmacion && (
@@ -573,7 +579,8 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
                     </button>
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>

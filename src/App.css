@@ -1145,23 +1145,52 @@
   position: relative;
 }
 
-.novedades-badge {
+/* Botón para agregar novedades */
+.novedades-add-btn {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  top: -6px;
+  left: -6px;
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   color: white;
+  border: none;
   border-radius: 50%;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.4);
+  border: 1px solid white;
+  transition: all 0.2s ease;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.novedades-add-btn:hover {
+  background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+  transform: scale(1.1);
+}
+
+.novedades-badge {
+  position: absolute;
+  top: -6px;
+  right: -18px;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
-  border: 2px solid white;
+  border: 1px solid white;
   transition: all 0.2s ease;
   z-index: 10;
 }
@@ -1172,20 +1201,140 @@
   box-shadow: 0 3px 12px rgba(220, 38, 38, 0.5);
 }
 
-/* Badge de conteo de inhabilitaciones */
-.inhabilitacion-badge-count {
-  position: absolute;
-  top: -6px;
-  left: -6px;
-  background: #8b5cf6; /* Color morado */
+/* Estilos para el modal de novedades */
+.novedades-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.novedades-modal {
+  background: white;
+  border-radius: 8px;
+  padding: 0;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.novedades-modal-header {
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
   color: white;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 8px 8px 0 0;
+}
+
+.novedades-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.novedades-modal-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.novedades-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.novedades-modal-content {
+  padding: 20px;
+}
+
+.novedades-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.novedades-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.novedad-btn {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  transition: all 0.2s ease;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.novedad-btn:hover {
+  background: #e9ecef;
+  border-color: #dee2e6;
+}
+
+.novedad-btn.active {
+  background: #d4edda;
+  border-color: #28a745;
+  color: #155724;
+}
+
+.novedad-btn.active:hover {
+  background: #c3e6cb;
+}
+
+.novedad-btn.processing {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Contenedor del checkbox */
+.checkbox-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Badge de conteo de inhabilitaciones */
+.inhabilitacion-badge-count {
+  position: absolute;
+  top: -8px;
+  left: -18px;
+  background: #8b5cf6; /* Color morado */
+  color: white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
   font-weight: bold;
   cursor: pointer;
   border: 1px solid white;
@@ -1360,32 +1509,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative; /* Para posicionar los badges */
 }
 
 .taxi-counter.disabled {
   background: rgba(220, 53, 69, 0.05);
   color: #000000;
   border-color: rgba(220, 53, 69, 0.3);
-}
-
-/* Estados de inhabilitación */
-.taxi-button.inhabilitado {
-  background: rgba(239, 68, 68, 0.1) !important;
-  color: #dc2626 !important;
-  border-color: rgba(239, 68, 68, 0.3) !important;
-  opacity: 0.9;
-}
-
-.taxi-button.inhabilitado:hover {
-  background: rgba(239, 68, 68, 0.15) !important;
-  transform: none;
-  box-shadow: none;
-}
-
-.taxi-counter.inhabilitado {
-  background: rgba(239, 68, 68, 0.05) !important;
-  color: #dc2626 !important;
-  border-color: rgba(239, 68, 68, 0.2) !important;
 }
 
 /* Pantalla de carga */
@@ -2423,4 +2553,19 @@
 
 .btn-add-order:hover {
   background: #218838;
+}
+
+/* Estilos para salidas de base */
+.orders-table tr.base-order {
+  background-color: #f8f9fa;
+  font-style: italic;
+}
+
+.orders-table tr.base-order:hover {
+  background-color: #e9ecef;
+}
+
+.orders-table tr.base-order .b67-field input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
