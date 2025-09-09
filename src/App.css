@@ -1718,10 +1718,10 @@
 }
 
 /* Headers específicos con ancho fijo como Excel */
-.header-cliente { width: 120px; }
+.header-cliente { width: 160px; }
 .header-hora { width: 60px; }
-.header-domicilio { width: 300px; }
-.header-observaciones { width: 250px; }
+.header-domicilio { width: 650px; }
+.header-observaciones { width: 450px; }
 .header-qse { width: 50px; }
 .header-unidad { width: 120px; }
 .header-hora-asignacion { width: 60px; }
@@ -1800,9 +1800,42 @@
 }
 
 .new-order-row {
-  background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
-  border: 2px solid #2196f3;
-  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+  background: linear-gradient(135deg, #e8f4fd, #fff3e0);
+  border: 3px solid #ffab91;
+  box-shadow: 0 3px 12px rgba(255, 171, 145, 0.4);
+  color: #333;
+}
+
+.new-order-row input {
+  color: #1a1a1a !important;
+  font-weight: 900 !important;
+  font-size: 15px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.new-order-row input::placeholder {
+  color: #4a4a4a !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+/* Anchos específicos para campos de la fila de entrada */
+.new-order-row .cliente-field {
+  width: 160px !important;
+  max-width: 160px !important;
+  min-width: 160px !important;
+}
+
+.new-order-row .domicilio-field {
+  width: 680px !important;
+  max-width: 680px !important;
+  min-width: 680px !important;
+}
+
+.new-order-row .observaciones-field {
+  width: 480px !important;
+  max-width: 480px !important;
+  min-width: 480px !important;
 }
 
 .add-order-button {
