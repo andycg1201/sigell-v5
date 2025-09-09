@@ -1195,6 +1195,13 @@
   z-index: 10;
 }
 
+/* Badge de novedades específico para taxi-counter */
+.taxi-counter .novedades-badge {
+  position: absolute;
+  top: -6px;
+  right: -18px;
+}
+
 .novedades-badge:hover {
   background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
   transform: scale(1.1);
@@ -1209,36 +1216,61 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .novedades-modal {
   background: white;
-  border-radius: 8px;
+  border-radius: 16px;
   padding: 0;
-  max-width: 500px;
-  width: 90%;
+  max-width: 600px;
+  width: 95%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: modalSlideIn 0.3s ease-out;
 }
 
 .novedades-modal-header {
   background: linear-gradient(135deg, #ff6b35, #f7931e);
   color: white;
-  padding: 15px 20px;
+  padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-radius: 8px 8px 0 0;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .novedades-modal-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .novedades-modal-close {
@@ -1262,7 +1294,8 @@
 }
 
 .novedades-modal-content {
-  padding: 20px;
+  padding: 0;
+  background: #f9fafb;
 }
 
 .novedades-section h4 {
@@ -1272,9 +1305,12 @@
 }
 
 .novedades-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 20px;
+  justify-content: flex-start;
+  align-items: flex-start;
 }
 
 .novedad-btn {
@@ -1313,6 +1349,105 @@
   cursor: not-allowed;
 }
 
+/* DISEÑO REVOLUCIONARIO - Estilo chips horizontales */
+.novedad-button {
+  background: transparent;
+  border: 2px dashed #cbd5e1;
+  border-radius: 50px;
+  padding: 10px 18px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: none;
+  min-height: 44px;
+  max-width: 220px;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 4px;
+}
+
+.novedad-button:hover {
+  transform: scale(1.05);
+  border-style: solid;
+  border-color: #ff6b35;
+  background: rgba(255, 107, 53, 0.1);
+  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+}
+
+.novedad-button.activa {
+  background: #10b981;
+  border: 2px solid #10b981;
+  color: white;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+  position: relative;
+}
+
+.novedad-button.activa:hover {
+  background: #059669;
+  transform: scale(1.08);
+  box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.3);
+}
+
+.novedad-button.disponible {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-color: #dee2e6;
+  color: #495057;
+}
+
+.novedad-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.novedad-codigo {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+  padding: 3px 8px;
+  background: #1f2937;
+  border-radius: 4px;
+  display: inline-block;
+  min-width: 32px;
+  text-align: center;
+  color: white;
+  border: none;
+  flex-shrink: 0;
+}
+
+.novedad-button.activa .novedad-codigo {
+  background: rgba(255, 255, 255, 0.9);
+  color: #065f46;
+}
+
+.novedad-descripcion {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.novedad-indicator {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 12px;
+  color: #28a745;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
 /* Contenedor del checkbox */
 .checkbox-container {
   position: relative;
@@ -1341,6 +1476,13 @@
   box-shadow: 0 1px 4px rgba(139, 92, 246, 0.4);
   z-index: 10;
   transition: all 0.2s ease;
+}
+
+/* Badge de inhabilitación específico para checkbox-container */
+.checkbox-container .inhabilitacion-badge-count {
+  position: absolute;
+  top: -8px;
+  left: -18px;
 }
 
 .inhabilitacion-badge-count:hover {
@@ -1372,22 +1514,22 @@
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(139, 92, 246, 0.5);
   z-index: 9999;
-  width: 280px;
-  font-size: 12px;
-  max-height: 200px;
+  width: 320px;
+  font-size: 16px;
+  max-height: 250px;
   overflow: hidden;
 }
 
 .popup-header {
   background: #8b5cf6;
   color: white;
-  padding: 6px 10px;
+  padding: 10px 14px;
   border-radius: 4px 4px 0 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-weight: bold;
-  font-size: 11px;
+  font-size: 16px;
 }
 
 .popup-close {
@@ -1411,9 +1553,10 @@
 }
 
 .popup-content {
-  padding: 8px;
-  max-height: 140px;
+  padding: 12px;
+  max-height: 180px;
   overflow-y: auto;
+  font-size: 15px;
 }
 
 .motivo-item {
@@ -1438,18 +1581,18 @@
 
 .motivo-codigo {
   font-weight: bold;
-  font-size: 13px;
+  font-size: 16px;
   color: #8b5cf6;
   background: #f3f4f6;
-  padding: 2px 6px;
-  border-radius: 3px;
+  padding: 4px 8px;
+  border-radius: 4px;
   border: 1px solid #e5e7eb;
 }
 
 .motivo-concepto {
   font-weight: bold;
-  color: #8b5cf6;
-  font-size: 13px;
+  color: #1f2937;
+  font-size: 16px;
 }
 
 .motivo-details {
@@ -1457,15 +1600,15 @@
 }
 
 .motivo-details > div {
-  margin-bottom: 2px;
-  color: #6b7280;
-  font-size: 10px;
+  margin-bottom: 3px;
+  color: #374151;
+  font-size: 14px;
 }
 
 .motivo-details .responsable {
-  color: #374151;
-  font-size: 11px;
-  font-weight: 500;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .motivo-details strong {

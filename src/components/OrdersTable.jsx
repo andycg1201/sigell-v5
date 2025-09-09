@@ -6,7 +6,7 @@ import ReassignmentHistory from './ReassignmentHistory';
 import ClientModal from './ClientModal';
 import { focusTelefonoFieldDelayed } from '../utils/focusUtils';
 
-const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) => {
+const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, telefonoRef }) => {
   const { selectedOrderId, selectOrder } = useSelection();
   const [newOrder, setNewOrder] = useState({
     cliente: '',
@@ -391,6 +391,7 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder }) 
             <tr className="new-order-row">
               <td className="cliente-field">
                 <input
+                  ref={telefonoRef}
                   type="tel"
                   placeholder="Teléfono"
                   value={newOrder.cliente}

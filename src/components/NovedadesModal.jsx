@@ -117,29 +117,6 @@ const NovedadesModal = ({
         </div>
         
         <div className="novedades-modal-content">
-          <p className="novedades-instructions">
-            {novedadesActivas.length > 0 
-              ? "Click en una novedad activa para desactivarla, o en una disponible para activarla"
-              : "Selecciona una novedad para activarla"
-            }
-          </p>
-          
-          {/* Debug info */}
-          <div style={{ 
-            background: '#f0f0f0', 
-            padding: '10px', 
-            margin: '10px 0', 
-            borderRadius: '5px', 
-            fontSize: '12px',
-            border: '1px solid #ccc'
-          }}>
-            <strong>Debug Info:</strong><br/>
-            Config cargada: {novedadesConfig ? 'Sí' : 'No'}<br/>
-            Novedades disponibles: {novedadesDisponibles.length}<br/>
-            Novedades activas: {novedadesActivas.length}<br/>
-            Taxi ID: {taxiId}
-          </div>
-          
           <div className="novedades-grid">
             {novedadesDisponibles.map((novedad) => {
               const isActiva = novedadesActivasCombinadas.some(n => n.codigo === novedad.codigo);
@@ -158,19 +135,6 @@ const NovedadesModal = ({
               );
             })}
           </div>
-          
-          {novedadesActivasCombinadas.length > 0 && (
-            <div className="novedades-activas">
-              <h4>Novedades Activas:</h4>
-              <ul>
-                {novedadesActivasCombinadas.map((novedad) => (
-                  <li key={novedad.codigo}>
-                    {novedad.codigo} - {novedad.descripcion}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
       </div>
     </div>,

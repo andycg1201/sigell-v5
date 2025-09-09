@@ -4,7 +4,6 @@ import { useTaxis } from '../contexts/TaxisContext';
 import { useSelection } from '../contexts/SelectionContext';
 import { useNovedades } from '../contexts/NovedadesContext';
 import NovedadesModal from './NovedadesModal';
-import NovedadesBadgeModal from './NovedadesBadgeModal';
 import InhabilitacionModal from './InhabilitacionModal';
 import { getMotivosInhabilitacion, getMotivosActivosTaxi, habilitarTaxi } from '../firebase/inhabilitaciones';
 
@@ -23,7 +22,6 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
   
   const counter = counters[taxi.id] || 0;
   const [showNovedadesModal, setShowNovedadesModal] = useState(false);
-  const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [optimisticNovedades, setOptimisticNovedades] = useState(new Set());
   const [showInhabilitacionModal, setShowInhabilitacionModal] = useState(false);
   const [showInhabilitacionPopup, setShowInhabilitacionPopup] = useState(false);
@@ -187,14 +185,21 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
   // Manejar click derecho para mostrar modal de novedades
   const handleRightClick = useCallback((e) => {
     e.preventDefault();
+    
+    // Si el taxi está inhabilitado, no permitir click derecho
+    if (isVisualmenteInhabilitado) {
+      console.log('Click derecho bloqueado - Taxi inhabilitado:', taxi.numero);
+      return;
+    }
+    
     console.log('Click derecho en taxi:', taxi.numero);
     setShowNovedadesModal(true);
-  }, [taxi.numero]);
+  }, [taxi.numero, isVisualmenteInhabilitado]);
 
   // Manejar click en el badge para mostrar novedades activas
   const handleBadgeClick = useCallback((e) => {
     e.stopPropagation();
-    setShowBadgeModal(true);
+    setShowNovedadesModal(true);
   }, []);
 
   // Manejar toggle de novedad - OPTIMIZADO
@@ -300,28 +305,13 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
 
   return (
     <div className={`taxi-item ${isHighlightedRow ? 'highlighted-row' : ''}`}>
-      <input
-        type="checkbox"
-        className="taxi-checkbox"
-        checked={isVisualmenteInhabilitado} // Estado visual combinado
-        onChange={handleCheckboxChange}
-      />
-      <button
-        className={`taxi-button ${isVisualmenteInhabilitado ? 'inhabilitado' : ''}`}
-        onClick={handleButtonClick}
-        onContextMenu={handleRightClick}
-        disabled={isVisualmenteInhabilitado}
-      >
-        {taxi.numero}
-        {hasNovedades && (
-          <div 
-            className="novedades-badge"
-            onClick={handleBadgeClick}
-            title="Click para ver novedades"
-          >
-            {novedadesCount}
-          </div>
-        )}
+      <div className="checkbox-container">
+        <input
+          type="checkbox"
+          className="taxi-checkbox"
+          checked={isVisualmenteInhabilitado} // Estado visual combinado
+          onChange={handleCheckboxChange}
+        />
         {motivosInhabilitacion.length > 0 && (
           <div 
             className="inhabilitacion-badge-count"
@@ -331,9 +321,26 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
             {motivosInhabilitacion.length}
           </div>
         )}
+      </div>
+      <button
+        className={`taxi-button ${isVisualmenteInhabilitado ? 'inhabilitado' : ''}`}
+        onClick={handleButtonClick}
+        onContextMenu={handleRightClick}
+        disabled={isVisualmenteInhabilitado}
+      >
+        {taxi.numero}
       </button>
       <div className={`taxi-counter ${isVisualmenteInhabilitado ? 'inhabilitado' : ''}`}>
         {counter}
+        {hasNovedades && (
+          <div 
+            className="novedades-badge"
+            onClick={handleBadgeClick}
+            title="Click para ver novedades"
+          >
+            {novedadesCount}
+          </div>
+        )}
       </div>
       
       
@@ -345,14 +352,6 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
         novedadesConfig={novedadesConfig}
         taxiNovedades={taxiNovedades[taxi.id]}
         onToggleNovedad={handleToggleNovedad}
-      />
-      
-      {/* Modal de badge */}
-      <NovedadesBadgeModal
-        isOpen={showBadgeModal}
-        onClose={() => setShowBadgeModal(false)}
-        taxiId={taxi.numero}
-        novedadesActivas={novedadesActivas}
       />
       
       {/* Modal de inhabilitación */}

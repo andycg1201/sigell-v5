@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TaxisProvider, useTaxis } from './contexts/TaxisContext';
 import { BasesProvider } from './contexts/BasesContext';
@@ -54,10 +54,21 @@ const AppContent = () => {
   const { loading: taxisLoading } = useTaxis();
   const [orders, setOrders] = useState([]);
   const [toast, setToast] = useState(null);
+  const telefonoRef = useRef(null);
 
   // Función para mostrar toast
   const showToast = (message, type = 'error') => {
     setToast({ message, type });
+  };
+
+  // Función para enfocar el campo teléfono
+  const focusTelefono = () => {
+    if (telefonoRef.current) {
+      setTimeout(() => {
+        telefonoRef.current.focus();
+        telefonoRef.current.select();
+      }, 100);
+    }
   };
 
   // Cargar pedidos desde Firebase
@@ -74,13 +85,39 @@ const AppContent = () => {
   // Configurar auto-foco al cargar la página y regresar a la pestaña
   useEffect(() => {
     if (user) {
+      // Focus inicial al cargar
+      focusTelefono();
+
+      // Listener para cuando la ventana recupera el foco
+      const handleWindowFocus = () => {
+        focusTelefono();
+      };
+
+      // Listener para cuando la pestaña se vuelve visible
+      const handleVisibilityChange = () => {
+        if (!document.hidden) {
+          focusTelefono();
+        }
+      };
+
+      // Agregar event listeners
+      window.addEventListener('focus', handleWindowFocus);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      // Cleanup anterior
       const cleanup = setupAutoFocusOnLoad();
-      return cleanup;
+
+      return () => {
+        window.removeEventListener('focus', handleWindowFocus);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        if (cleanup) cleanup();
+      };
     }
   }, [user]);
 
   const handleAddOrder = (newOrder) => {
     setOrders(prev => [newOrder, ...prev]);
+    focusTelefono(); // Auto-focus después de agregar pedido
   };
 
   const handleDeleteOrder = async (orderId) => {
@@ -97,10 +134,12 @@ const AppContent = () => {
       
       // Eliminar el pedido del estado local
       setOrders(prev => prev.filter(order => order.id !== orderId));
+      focusTelefono(); // Auto-focus después de eliminar pedido
     } catch (error) {
       console.error('Error manejando contadores al eliminar pedido:', error);
       // Aún así eliminar el pedido del estado local
       setOrders(prev => prev.filter(order => order.id !== orderId));
+      focusTelefono(); // Auto-focus después de eliminar pedido (incluso con error)
     }
   };
 
@@ -108,6 +147,7 @@ const AppContent = () => {
     setOrders(prev => prev.map(order => 
       order.id === updatedOrder.id ? updatedOrder : order
     ));
+    focusTelefono(); // Auto-focus después de actualizar pedido
   };
 
   const handleCreateBaseOrder = async (base, unitNumber) => {
@@ -142,7 +182,7 @@ const AppContent = () => {
       console.log('Pedido desde base creado exitosamente:', newOrder);
       
       // Enfocar automáticamente el campo de teléfono
-      focusTelefonoFieldDelayed();
+      focusTelefono();
       
     } catch (error) {
       console.error('Error creando pedido desde base:', error);
@@ -201,7 +241,7 @@ const AppContent = () => {
       }));
 
       // Enfocar automáticamente el campo de teléfono
-      focusTelefonoFieldDelayed();
+      focusTelefono();
       
     } catch (error) {
       console.error('Error asignando unidad:', error);
@@ -227,7 +267,7 @@ const AppContent = () => {
       <Header user={user} />
       <main className="main-content">
         <TaxiGrid onAssignUnit={handleAssignUnit} orders={orders} onCreateBaseOrder={handleCreateBaseOrder} onShowToast={showToast} />
-        <OrdersTable orders={orders} onAddOrder={handleAddOrder} onDeleteOrder={handleDeleteOrder} onUpdateOrder={handleUpdateOrder} />
+        <OrdersTable orders={orders} onAddOrder={handleAddOrder} onDeleteOrder={handleDeleteOrder} onUpdateOrder={handleUpdateOrder} telefonoRef={telefonoRef} />
       </main>
       
       {/* Toast Notification */}
