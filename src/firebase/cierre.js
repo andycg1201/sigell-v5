@@ -298,11 +298,15 @@ export const debugEstadoPedidos = async () => {
     
     querySnapshot.forEach((doc) => {
       const pedido = doc.data();
+      const isBaseOrder = !pedido.hora; // Salida de base si no tiene hora
       console.log(`- Pedido activo: ${doc.id}`, {
-        direccion: pedido.direccion,
-        horaPedido: pedido.horaPedido,
-        unidadAsignada: pedido.unidadAsignada,
-        estado: pedido.estado
+        cliente: pedido.cliente,
+        hora: pedido.hora || 'SIN HORA (SALIDA DE BASE)',
+        domicilio: pedido.domicilio,
+        unidad: pedido.unidad,
+        horaAsignacion: pedido.horaAsignacion,
+        esSalidaBase: isBaseOrder,
+        createdAt: pedido.createdAt
       });
     });
     
@@ -317,6 +321,15 @@ export const debugEstadoPedidos = async () => {
         fecha: data.fecha,
         fechaArchivado: data.fechaArchivado
       });
+      
+      // Mostrar detalles de pedidos archivados
+      if (data.pedidos && data.pedidos.length > 0) {
+        console.log(`  Detalles de pedidos archivados en ${doc.id}:`);
+        data.pedidos.forEach((pedido, index) => {
+          const isBaseOrder = !pedido.hora;
+          console.log(`    ${index + 1}. ${pedido.cliente} - ${pedido.hora || 'SALIDA DE BASE'} - Unidad: ${pedido.unidad || 'Sin asignar'}`);
+        });
+      }
     });
     
     // Verificar estado de cierre
@@ -330,6 +343,91 @@ export const debugEstadoPedidos = async () => {
     };
   } catch (error) {
     console.error('Error en debug:', error);
+    throw error;
+  }
+};
+
+// Función para limpiar pedidos huérfanos (pedidos que quedaron después del cierre)
+export const limpiarPedidosHuerfanos = async () => {
+  try {
+    console.log('=== LIMPIANDO PEDIDOS HUÉRFANOS ===');
+    
+    // Obtener todos los pedidos actuales
+    const pedidosRef = collection(db, 'pedidos');
+    const querySnapshot = await getDocs(pedidosRef);
+    
+    console.log(`Pedidos huérfanos encontrados: ${querySnapshot.size}`);
+    
+    if (querySnapshot.size === 0) {
+      console.log('No hay pedidos huérfanos para limpiar');
+      return { pedidosLimpiados: 0 };
+    }
+    
+    const pedidosHuerfanos = [];
+    const batch = writeBatch(db);
+    
+    querySnapshot.forEach((doc) => {
+      const pedido = { id: doc.id, ...doc.data() };
+      const isBaseOrder = !pedido.hora;
+      pedidosHuerfanos.push(pedido);
+      console.log(`Limpiando pedido huérfano: ${doc.id} (${isBaseOrder ? 'SALIDA DE BASE' : 'PEDIDO NORMAL'})`, {
+        cliente: pedido.cliente,
+        hora: pedido.hora || 'SIN HORA',
+        domicilio: pedido.domicilio,
+        unidad: pedido.unidad
+      });
+      batch.delete(doc.ref);
+    });
+    
+    // Usar fecha de ayer para el archivo
+    const ayer = new Date();
+    ayer.setDate(ayer.getDate() - 1);
+    const fechaAyer = ayer.toISOString().split('T')[0];
+    
+    console.log(`Intentando archivar en fecha: ${fechaAyer}`);
+    
+    // Verificar si ya existe un archivo para ayer
+    const archivoRef = doc(db, 'pedidos_archivados', fechaAyer);
+    const archivoSnap = await getDoc(archivoRef);
+    
+    if (archivoSnap.exists()) {
+      // Si ya existe, agregar los pedidos huérfanos al archivo existente
+      const archivoExistente = archivoSnap.data();
+      const pedidosCombinados = [...archivoExistente.pedidos, ...pedidosHuerfanos];
+      
+      batch.update(archivoRef, {
+        pedidos: pedidosCombinados,
+        totalPedidos: pedidosCombinados.length,
+        fechaArchivado: serverTimestamp(),
+        pedidosHuerfanosAgregados: pedidosHuerfanos.length,
+        ultimaLimpiezaHuerfanos: serverTimestamp()
+      });
+      
+      console.log(`✅ ${pedidosHuerfanos.length} pedidos huérfanos agregados al archivo existente de ${fechaAyer}`);
+    } else {
+      // Si no existe, crear nuevo archivo
+      batch.set(archivoRef, {
+        fecha: fechaAyer,
+        pedidos: pedidosHuerfanos,
+        totalPedidos: pedidosHuerfanos.length,
+        fechaArchivado: serverTimestamp(),
+        esLimpiezaHuerfanos: true,
+        ultimaLimpiezaHuerfanos: serverTimestamp()
+      });
+      
+      console.log(`✅ ${pedidosHuerfanos.length} pedidos huérfanos archivados en nuevo archivo de ${fechaAyer}`);
+    }
+    
+    console.log('Ejecutando batch de operaciones...');
+    await batch.commit();
+    console.log('✅ Batch ejecutado exitosamente');
+    
+    return {
+      pedidosLimpiados: pedidosHuerfanos.length,
+      fechaArchivo: fechaAyer
+    };
+  } catch (error) {
+    console.error('❌ Error limpiando pedidos huérfanos:', error);
     throw error;
   }
 };
@@ -389,6 +487,90 @@ export const forzarCierreDelDia = async () => {
     };
   } catch (error) {
     console.error('Error forzando cierre:', error);
+    throw error;
+  }
+};
+
+// Función de emergencia para limpiar TODOS los pedidos actuales
+export const limpiarTodosLosPedidos = async () => {
+  try {
+    console.log('=== LIMPIEZA DE EMERGENCIA - TODOS LOS PEDIDOS ===');
+    
+    // Obtener todos los pedidos actuales
+    const pedidosRef = collection(db, 'pedidos');
+    const querySnapshot = await getDocs(pedidosRef);
+    
+    console.log(`Pedidos encontrados para limpieza de emergencia: ${querySnapshot.size}`);
+    
+    if (querySnapshot.size === 0) {
+      console.log('No hay pedidos para limpiar');
+      return { pedidosLimpiados: 0 };
+    }
+    
+    const pedidosParaLimpiar = [];
+    const batch = writeBatch(db);
+    
+    querySnapshot.forEach((doc) => {
+      const pedido = { id: doc.id, ...doc.data() };
+      const isBaseOrder = !pedido.hora;
+      pedidosParaLimpiar.push(pedido);
+      console.log(`Limpiando pedido: ${doc.id} (${isBaseOrder ? 'SALIDA DE BASE' : 'PEDIDO NORMAL'})`, {
+        cliente: pedido.cliente,
+        hora: pedido.hora || 'SIN HORA',
+        domicilio: pedido.domicilio,
+        unidad: pedido.unidad
+      });
+      batch.delete(doc.ref);
+    });
+    
+    // Usar fecha de ayer para el archivo
+    const ayer = new Date();
+    ayer.setDate(ayer.getDate() - 1);
+    const fechaAyer = ayer.toISOString().split('T')[0];
+    
+    console.log(`Archivando en fecha: ${fechaAyer}`);
+    
+    // Verificar si ya existe un archivo para ayer
+    const archivoRef = doc(db, 'pedidos_archivados', fechaAyer);
+    const archivoSnap = await getDoc(archivoRef);
+    
+    if (archivoSnap.exists()) {
+      // Si ya existe, agregar los pedidos al archivo existente
+      const archivoExistente = archivoSnap.data();
+      const pedidosCombinados = [...archivoExistente.pedidos, ...pedidosParaLimpiar];
+      
+      batch.update(archivoRef, {
+        pedidos: pedidosCombinados,
+        totalPedidos: pedidosCombinados.length,
+        fechaArchivado: serverTimestamp(),
+        limpiezaEmergencia: true,
+        pedidosLimpiezaEmergencia: pedidosParaLimpiar.length
+      });
+      
+      console.log(`✅ ${pedidosParaLimpiar.length} pedidos agregados al archivo existente de ${fechaAyer}`);
+    } else {
+      // Si no existe, crear nuevo archivo
+      batch.set(archivoRef, {
+        fecha: fechaAyer,
+        pedidos: pedidosParaLimpiar,
+        totalPedidos: pedidosParaLimpiar.length,
+        fechaArchivado: serverTimestamp(),
+        limpiezaEmergencia: true
+      });
+      
+      console.log(`✅ ${pedidosParaLimpiar.length} pedidos archivados en nuevo archivo de ${fechaAyer}`);
+    }
+    
+    console.log('Ejecutando batch de operaciones...');
+    await batch.commit();
+    console.log('✅ Batch ejecutado exitosamente');
+    
+    return {
+      pedidosLimpiados: pedidosParaLimpiar.length,
+      fechaArchivo: fechaAyer
+    };
+  } catch (error) {
+    console.error('❌ Error en limpieza de emergencia:', error);
     throw error;
   }
 };

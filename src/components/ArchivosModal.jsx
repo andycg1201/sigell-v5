@@ -39,17 +39,18 @@ const ArchivosModal = ({ isOpen, onClose }) => {
     
     // Filtrar por tipo
     if (tipoFiltro === 'asignados') {
-      filtrados = filtrados.filter(pedido => pedido.unidadAsignada);
+      filtrados = filtrados.filter(pedido => pedido.unidad);
     } else if (tipoFiltro === 'no-asignados') {
-      filtrados = filtrados.filter(pedido => !pedido.unidadAsignada);
+      filtrados = filtrados.filter(pedido => !pedido.unidad);
     }
     
     // Filtrar por texto
     if (filtroPedidos.trim()) {
       const busqueda = filtroPedidos.toLowerCase();
       filtrados = filtrados.filter(pedido => 
-        pedido.direccion?.toLowerCase().includes(busqueda) ||
-        pedido.unidadAsignada?.toLowerCase().includes(busqueda) ||
+        pedido.cliente?.toLowerCase().includes(busqueda) ||
+        pedido.domicilio?.toLowerCase().includes(busqueda) ||
+        pedido.unidad?.toString().includes(busqueda) ||
         pedido.observaciones?.toLowerCase().includes(busqueda)
       );
     }
@@ -66,33 +67,48 @@ const ArchivosModal = ({ isOpen, onClose }) => {
 
     const headers = [
       'ID',
+      'Cliente',
       'Dirección',
-      'Unidad Asignada',
+      'Unidad',
       'Estado',
       'Hora Pedido',
       'Hora Asignación',
-      'Observaciones'
+      'Observaciones',
+      'QSE',
+      'B67',
+      'CONF',
+      'Tipo'
     ];
 
     const csvContent = [
       headers.join(','),
       ...pedidosFiltrados.map(pedido => {
-        // Manejar diferentes estructuras de datos
-        const direccion = pedido.direccion || pedido.destino || pedido.direccionDestino || '';
-        const unidad = pedido.unidadAsignada || pedido.taxiAsignado || pedido.unidad || 'Sin asignar';
-        const horaPedido = pedido.horaPedido || pedido.fechaHora || pedido.timestamp || '';
-        const horaAsignacion = pedido.horaAsignacion || pedido.fechaAsignacion || '';
-        const observaciones = pedido.observaciones || pedido.obs || pedido.notas || '';
-        const estado = pedido.estado || (unidad !== 'Sin asignar' ? 'Asignado' : 'Pendiente');
+        // Estructura real de los pedidos archivados
+        const cliente = pedido.cliente || '';
+        const direccion = pedido.domicilio || pedido.direccion || '';
+        const unidad = pedido.unidad || 'Sin asignar';
+        const horaPedido = pedido.hora || '';
+        const horaAsignacion = pedido.horaAsignacion || '';
+        const observaciones = pedido.observaciones || '';
+        const qse = pedido.qse ? 'Sí' : 'No';
+        const b67 = pedido.b67 ? 'Sí' : 'No';
+        const conf = pedido.conf ? 'Sí' : 'No';
+        const estado = unidad !== 'Sin asignar' ? 'Asignado' : 'Pendiente';
+        const tipo = !pedido.hora ? 'Salida de Base' : 'Pedido Normal';
         
         return [
           pedido.id || '',
+          `"${cliente}"`,
           `"${direccion}"`,
           unidad,
           estado,
           horaPedido,
           horaAsignacion,
-          `"${observaciones}"`
+          `"${observaciones}"`,
+          qse,
+          b67,
+          conf,
+          tipo
         ].join(',');
       })
     ].join('\n');
@@ -225,33 +241,49 @@ const ArchivosModal = ({ isOpen, onClose }) => {
                 ) : (
                   <div className="pedidos-container">
                     {pedidosFiltrados.map((pedido, index) => {
-                      // Manejar diferentes estructuras de datos
-                      const direccion = pedido.direccion || pedido.destino || pedido.direccionDestino || 'Sin dirección';
-                      const unidad = pedido.unidadAsignada || pedido.taxiAsignado || pedido.unidad;
-                      const horaPedido = pedido.horaPedido || pedido.fechaHora || pedido.timestamp;
-                      const horaAsignacion = pedido.horaAsignacion || pedido.fechaAsignacion;
-                      const observaciones = pedido.observaciones || pedido.obs || pedido.notas;
-                      const estado = pedido.estado || (unidad ? 'Asignado' : 'Pendiente');
+                      // Estructura real de los pedidos archivados
+                      const direccion = pedido.domicilio || pedido.direccion || 'Sin dirección';
+                      const unidad = pedido.unidad;
+                      const horaPedido = pedido.hora;
+                      const horaAsignacion = pedido.horaAsignacion;
+                      const observaciones = pedido.observaciones;
+                      const cliente = pedido.cliente;
+                      const qse = pedido.qse;
+                      const b67 = pedido.b67;
+                      const conf = pedido.conf;
+                      const estado = unidad ? 'Asignado' : 'Pendiente';
+                      const esSalidaBase = !pedido.hora; // Salida de base si no tiene hora
                       
                       return (
                         <div key={pedido.id || index} className="pedido-item">
                           <div className="pedido-info">
                             <div className="pedido-id">#{pedido.id || index + 1}</div>
-                            <div className="pedido-direccion">{direccion}</div>
+                            <div className="pedido-cliente">
+                              <strong>Cliente:</strong> {cliente || 'Sin cliente'}
+                            </div>
+                            <div className="pedido-direccion">
+                              <strong>Dirección:</strong> {direccion}
+                            </div>
                             <div className="pedido-unidad">
-                              {unidad ? `Unidad: ${unidad}` : 'Sin asignar'}
+                              <strong>Unidad:</strong> {unidad ? `${unidad}` : 'Sin asignar'}
                             </div>
                             <div className="pedido-hora">
-                              {horaPedido && `Pedido: ${horaPedido}`}
-                              {horaAsignacion && ` | Asignado: ${horaAsignacion}`}
+                              {horaPedido && <span><strong>Hora pedido:</strong> {horaPedido}</span>}
+                              {horaAsignacion && <span><strong> | Asignado:</strong> {horaAsignacion}</span>}
+                              {esSalidaBase && <span className="salida-base"> (SALIDA DE BASE)</span>}
                             </div>
                             {observaciones && (
                               <div className="pedido-observaciones">
-                                Obs: {observaciones}
+                                <strong>Obs:</strong> {observaciones}
                               </div>
                             )}
+                            <div className="pedido-flags">
+                              {qse && <span className="flag qse">QSE</span>}
+                              {b67 && <span className="flag b67">B67</span>}
+                              {conf && <span className="flag conf">CONF</span>}
+                            </div>
                             <div className="pedido-estado-texto">
-                              Estado: {estado}
+                              <strong>Estado:</strong> {estado}
                             </div>
                           </div>
                           <div className={`pedido-estado ${unidad ? 'asignado' : 'pendiente'}`}>

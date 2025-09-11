@@ -7,12 +7,13 @@ import { useCierre } from '../contexts/CierreContext';
 import { debugEstadoPedidos, forzarCierreDelDia } from '../firebase/cierre';
 import { getMotivosInhabilitacion, updateMotivosInhabilitacion } from '../firebase/inhabilitaciones';
 import ArchivosModal from './ArchivosModal';
+import LimpiezaModal from './LimpiezaModal';
 
 const Header = ({ user }) => {
   const { totalTaxis, updateConfig } = useTaxis();
   const { bases, updateConfig: updateBasesConfig } = useBases();
   const { novedadesConfig, updateConfig: updateNovedadesConfig } = useNovedades();
-  const { estadoCierre, ejecutarCierreManual, limpiarCache } = useCierre();
+  const { estadoCierre, ejecutarCierreManual, limpiarCache, debugEstado, limpiarHuerfanos, limpiarTodos } = useCierre();
   const [newTotal, setNewTotal] = React.useState(totalTaxis);
   const [loading, setLoading] = React.useState(false);
   const [isAdminOpen, setIsAdminOpen] = React.useState(false);
@@ -21,6 +22,7 @@ const Header = ({ user }) => {
   const [editingNovedades, setEditingNovedades] = React.useState(false);
   const [tempNovedades, setTempNovedades] = React.useState([]);
   const [showArchivosModal, setShowArchivosModal] = React.useState(false);
+  const [showLimpiezaModal, setShowLimpiezaModal] = React.useState(false);
   const [editingMotivos, setEditingMotivos] = React.useState(false);
   const [tempMotivos, setTempMotivos] = React.useState([]);
   const [motivosConfig, setMotivosConfig] = React.useState(null);
@@ -235,7 +237,7 @@ const Header = ({ user }) => {
   // Función para debug del estado
   const handleDebugEstado = async () => {
     try {
-      const estado = await debugEstadoPedidos();
+      const estado = await debugEstado();
       alert(
         `Estado actual del sistema:\n\n` +
         `Pedidos activos: ${estado.pedidosActivos}\n` +
@@ -248,6 +250,34 @@ const Header = ({ user }) => {
     } catch (error) {
       console.error('Error en debug:', error);
       alert('Error ejecutando debug: ' + error.message);
+    }
+  };
+
+  // Función para limpiar pedidos huérfanos
+  const handleLimpiarHuerfanos = async () => {
+    const confirmar = window.confirm(
+      `🧹 Limpiar Pedidos Huérfanos\n\n` +
+      `Esto archivará cualquier pedido que haya quedado después del cierre automático.\n` +
+      `Incluye salidas de base y pedidos normales.\n\n` +
+      `¿Está seguro de continuar?`
+    );
+
+    if (!confirmar) return;
+
+    setLoading(true);
+    try {
+      const resultado = await limpiarHuerfanos();
+      alert(
+        `Limpieza de huérfanos completada:\n` +
+        `- Pedidos limpiados: ${resultado.pedidosLimpiados}\n` +
+        `- Fecha de archivo: ${resultado.fechaArchivo}\n\n` +
+        `${resultado.pedidosLimpiados > 0 ? 'Los pedidos han sido archivados correctamente.' : 'No había pedidos huérfanos.'}`
+      );
+    } catch (error) {
+      console.error('Error limpiando huérfanos:', error);
+      alert('Error limpiando pedidos huérfanos: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -291,6 +321,34 @@ const Header = ({ user }) => {
 
     limpiarCache();
     alert('Cache limpiado exitosamente. Las próximas consultas serán a Firebase.');
+  };
+
+  // Función de emergencia para limpiar todos los pedidos
+  const handleLimpiarTodos = async () => {
+    const confirmar = window.confirm(
+      `🚨 LIMPIEZA DE EMERGENCIA\n\n` +
+      `Esto archivará TODOS los pedidos actuales (incluyendo salidas de base).\n` +
+      `Es una función de emergencia para casos donde el cierre automático falló.\n\n` +
+      `¿Está seguro de continuar?`
+    );
+
+    if (!confirmar) return;
+
+    setLoading(true);
+    try {
+      const resultado = await limpiarTodos();
+      alert(
+        `Limpieza de emergencia completada:\n` +
+        `- Pedidos limpiados: ${resultado.pedidosLimpiados}\n` +
+        `- Fecha de archivo: ${resultado.fechaArchivo}\n\n` +
+        `Todos los pedidos han sido archivados correctamente.`
+      );
+    } catch (error) {
+      console.error('Error en limpieza de emergencia:', error);
+      alert('Error en limpieza de emergencia: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getCurrentDateTime = () => {
@@ -697,6 +755,29 @@ const Header = ({ user }) => {
                     >
                       🧹 Limpiar Cache
                     </button>
+                    <button 
+                      className="btn-limpiar-huerfanos"
+                      onClick={handleLimpiarHuerfanos}
+                      disabled={loading}
+                      title="Archivar pedidos que quedaron después del cierre automático"
+                    >
+                      🗑️ Limpiar Huérfanos
+                    </button>
+                    <button 
+                      className="btn-limpiar-todos"
+                      onClick={handleLimpiarTodos}
+                      disabled={loading}
+                      title="Limpieza de emergencia - archiva TODOS los pedidos actuales"
+                    >
+                      🚨 Limpiar Todos
+                    </button>
+                    <button 
+                      className="btn-limpieza-temporal"
+                      onClick={() => setShowLimpiezaModal(true)}
+                      title="Limpieza temporal - selecciona qué borrar (clientes, pedidos, contadores, archivos)"
+                    >
+                      🧹 Limpieza Temporal
+                    </button>
                     <button className="btn-stats">📊 Estadísticas</button>
                     <button className="btn-export">📤 Exportar</button>
                   </div>
@@ -714,6 +795,12 @@ const Header = ({ user }) => {
       <ArchivosModal 
         isOpen={showArchivosModal}
         onClose={() => setShowArchivosModal(false)}
+      />
+
+      {/* Modal de Limpieza Temporal */}
+      <LimpiezaModal 
+        isOpen={showLimpiezaModal}
+        onClose={() => setShowLimpiezaModal(false)}
       />
     </header>
   );

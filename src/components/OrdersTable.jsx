@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useSelection } from '../contexts/SelectionContext';
 import { getClientByPhone, addClient } from '../firebase/clients';
+import { getClienteByPhone } from '../firebase/clientes';
 import { addOrder, updateOrder, deleteOrder } from '../firebase/orders';
 import ReassignmentHistory from './ReassignmentHistory';
 import ClientModal from './ClientModal';
+import DireccionesModal from './DireccionesModal';
+import CalificacionModal from './CalificacionModal';
 import { focusTelefonoFieldDelayed } from '../utils/focusUtils';
 
 const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, telefonoRef }) => {
@@ -20,6 +23,10 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
   
   const [showClientModal, setShowClientModal] = useState(false);
   const [pendingOrder, setPendingOrder] = useState(null);
+  const [showDireccionesModal, setShowDireccionesModal] = useState(false);
+  const [telefonoSeleccionado, setTelefonoSeleccionado] = useState('');
+  const [showCalificacionModal, setShowCalificacionModal] = useState(false);
+  const [pedidoParaCalificar, setPedidoParaCalificar] = useState(null);
   
   
   // Mostrar todos los pedidos (pendientes y asignados)
@@ -32,6 +39,35 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
 
   const handleRowClick = (orderId) => {
     selectOrder(orderId);
+  };
+
+  // Función para seleccionar dirección del modal
+  const handleSelectDireccion = (direccion) => {
+    setNewOrder(prev => ({
+      ...prev,
+      domicilio: direccion
+    }));
+    setShowDireccionesModal(false);
+    setTelefonoSeleccionado('');
+    
+    // Enfocar el campo de cantidad después de cerrar el modal
+    setTimeout(() => {
+      if (cantidadInputRef) {
+        cantidadInputRef.focus();
+      }
+    }, 100);
+  };
+
+  // Función para abrir modal de calificación
+  const handleCalificarCliente = (pedido) => {
+    setPedidoParaCalificar(pedido);
+    setShowCalificacionModal(true);
+  };
+
+  // Función para cerrar modal de calificación
+  const handleCalificacionGuardada = () => {
+    setShowCalificacionModal(false);
+    setPedidoParaCalificar(null);
   };
 
   const handleNewOrderChange = (field, value) => {
@@ -54,46 +90,19 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
   };
 
   const handleClienteKeyPress = async (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault();
       
-      if (!newOrder.cliente.trim()) {
-        return;
-      }
-
-      const phoneNumber = newOrder.cliente.trim();
-      
-      try {
-        // Verificar si el cliente existe
-        const existingClient = await getClientByPhone(phoneNumber);
-        
-        if (existingClient) {
-          // Cliente existe, mover foco al campo cantidad
-          if (cantidadInputRef) {
-            cantidadInputRef.focus();
-          }
-        } else {
-          // Cliente no existe, mostrar modal para agregarlo
-          setPendingOrder({
-            cliente: phoneNumber,
-            domicilio: newOrder.domicilio.trim(),
-            observaciones: newOrder.observaciones.trim(),
-            cantidad: newOrder.cantidad,
-            qse: newOrder.qse
-          });
-          setShowClientModal(true);
+      const telefono = newOrder.cliente.trim();
+      if (telefono) {
+        // Abrir modal universal (siempre se abre)
+        setTelefonoSeleccionado(telefono);
+        setShowDireccionesModal(true);
+      } else {
+        // Si no hay teléfono, enfocar cantidad
+        if (cantidadInputRef) {
+          cantidadInputRef.focus();
         }
-      } catch (error) {
-        console.error('Error verificando cliente:', error);
-        // En caso de error, mostrar el modal para agregar cliente
-        setPendingOrder({
-          cliente: phoneNumber,
-          domicilio: newOrder.domicilio.trim(),
-          observaciones: newOrder.observaciones.trim(),
-          cantidad: newOrder.cantidad,
-          qse: newOrder.qse
-        });
-        setShowClientModal(true);
       }
     }
   };
@@ -120,8 +129,8 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
           // Cliente no existe, mostrar modal para agregarlo
           setPendingOrder({
             cliente: phoneNumber,
-            domicilio: newOrder.domicilio.trim(),
-            observaciones: newOrder.observaciones.trim(),
+            domicilio: '', // No usar valor de la fila de entrada
+            observaciones: '', // No usar valor de la fila de entrada
             cantidad: newOrder.cantidad,
             qse: newOrder.qse
           });
@@ -400,24 +409,6 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
                   style={{ width: '100%', border: 'none', background: 'transparent' }}
                 />
               </td>
-              <td className="domicilio-field">
-                <input
-                  type="text"
-                  placeholder="Domicilio"
-                  value={newOrder.domicilio}
-                  onChange={(e) => handleNewOrderChange('domicilio', e.target.value)}
-                  style={{ width: '100%', border: 'none', background: 'transparent' }}
-                />
-              </td>
-              <td className="observaciones-field">
-                <input
-                  type="text"
-                  placeholder="Observaciones"
-                  value={newOrder.observaciones}
-                  onChange={(e) => handleNewOrderChange('observaciones', e.target.value)}
-                  style={{ width: '100%', border: 'none', background: 'transparent' }}
-                />
-              </td>
               <td className="cantidad-field">
                 <div className="cantidad-control">
                   <button
@@ -562,22 +553,51 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
                     </div>
                   </td>
                   <td className="confirm-field">
-                    <button
-                      className="delete-button"
-                      onClick={() => handleDeleteOrder(order.id)}
-                      title="Eliminar pedido"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        borderRadius: '4px',
-                        color: '#dc3545',
-                        fontSize: '16px'
-                      }}
-                    >
-                      🗑️
-                    </button>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      {/* Botón de calificación - solo visible si está asignado */}
+                      {order.unidad && (
+                        <button
+                          className="calificar-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCalificarCliente(order);
+                          }}
+                          title="Calificar cliente"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            borderRadius: '4px',
+                            color: '#ffc107',
+                            fontSize: '16px'
+                          }}
+                        >
+                          ⭐
+                        </button>
+                      )}
+                      
+                      {/* Botón eliminar */}
+                      <button
+                        className="delete-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteOrder(order.id);
+                        }}
+                        title="Eliminar pedido"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          borderRadius: '4px',
+                          color: '#dc3545',
+                          fontSize: '16px'
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </td>
                 </tr>
                 );
@@ -592,6 +612,35 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
         onClose={handleCloseModal}
         onSave={handleSaveClient}
         phoneNumber={pendingOrder?.cliente}
+      />
+
+      {/* Modal de direcciones múltiples */}
+      <DireccionesModal
+        isOpen={showDireccionesModal}
+        onClose={() => {
+          setShowDireccionesModal(false);
+          setTelefonoSeleccionado('');
+          
+          // Enfocar el campo de cantidad después de cerrar el modal
+          setTimeout(() => {
+            if (cantidadInputRef) {
+              cantidadInputRef.focus();
+            }
+          }, 100);
+        }}
+        telefono={telefonoSeleccionado}
+        onSelectDireccion={handleSelectDireccion}
+      />
+
+      {/* Modal de calificación de clientes */}
+      <CalificacionModal
+        isOpen={showCalificacionModal}
+        onClose={() => {
+          setShowCalificacionModal(false);
+          setPedidoParaCalificar(null);
+        }}
+        pedido={pedidoParaCalificar}
+        onCalificacionGuardada={handleCalificacionGuardada}
       />
     </div>
   );

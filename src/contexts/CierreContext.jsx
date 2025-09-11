@@ -3,7 +3,10 @@ import {
   verificarCierreDelDia,
   ejecutarCierreDelDia,
   getPedidosArchivados,
-  getFechasArchivadas
+  getFechasArchivadas,
+  debugEstadoPedidos,
+  limpiarPedidosHuerfanos,
+  limpiarTodosLosPedidos
 } from '../firebase/cierre';
 
 const CierreContext = createContext();
@@ -235,6 +238,50 @@ export const CierreProvider = ({ children }) => {
     localStorage.removeItem('fechasArchivadas');
   }, []);
 
+  // Función para debug del estado
+  const debugEstado = useCallback(async () => {
+    try {
+      const resultado = await debugEstadoPedidos();
+      console.log('Debug completado:', resultado);
+      return resultado;
+    } catch (error) {
+      console.error('Error en debug:', error);
+      throw error;
+    }
+  }, []);
+
+  // Función para limpiar pedidos huérfanos
+  const limpiarHuerfanos = useCallback(async () => {
+    try {
+      const resultado = await limpiarPedidosHuerfanos();
+      console.log('Limpieza de huérfanos completada:', resultado);
+      
+      // Actualizar estado después de la limpieza
+      await verificarEstadoCierre();
+      
+      return resultado;
+    } catch (error) {
+      console.error('Error limpiando huérfanos:', error);
+      throw error;
+    }
+  }, [verificarEstadoCierre]);
+
+  // Función de emergencia para limpiar todos los pedidos
+  const limpiarTodos = useCallback(async () => {
+    try {
+      const resultado = await limpiarTodosLosPedidos();
+      console.log('Limpieza de emergencia completada:', resultado);
+      
+      // Actualizar estado después de la limpieza
+      await verificarEstadoCierre();
+      
+      return resultado;
+    } catch (error) {
+      console.error('Error en limpieza de emergencia:', error);
+      throw error;
+    }
+  }, [verificarEstadoCierre]);
+
   const value = {
     estadoCierre,
     pedidosArchivados,
@@ -244,7 +291,10 @@ export const CierreProvider = ({ children }) => {
     verificarCierreAutomatico,
     obtenerPedidosArchivados,
     obtenerFechasArchivadas,
-    limpiarCache
+    limpiarCache,
+    debugEstado,
+    limpiarHuerfanos,
+    limpiarTodos
   };
 
   return (
