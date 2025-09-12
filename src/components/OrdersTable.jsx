@@ -7,6 +7,7 @@ import ReassignmentHistory from './ReassignmentHistory';
 import ClientModal from './ClientModal';
 import DireccionesModal from './DireccionesModal';
 import CalificacionModal from './CalificacionModal';
+import ModemModal from './ModemModal';
 import { focusTelefonoFieldDelayed } from '../utils/focusUtils';
 
 const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, telefonoRef }) => {
@@ -28,6 +29,10 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
   const [showCalificacionModal, setShowCalificacionModal] = useState(false);
   const [pedidoParaCalificar, setPedidoParaCalificar] = useState(null);
   
+  // Estado para manejar llamadas del modem
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [showModemModal, setShowModemModal] = useState(false);
+  
   
   // Mostrar todos los pedidos (pendientes y asignados)
   const allOrders = orders;
@@ -36,6 +41,26 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
   useEffect(() => {
     console.log('OrdersTable: Pedidos actuales:', allOrders.map(o => ({ id: o.id, cliente: o.cliente, hora: o.hora })));
   }, [allOrders]);
+
+  // Solicitar permisos de notificación al cargar el componente
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Listener para toggle del modal del modem
+  useEffect(() => {
+    const handleToggleModemModal = () => {
+      setShowModemModal(prev => !prev);
+    };
+
+    window.addEventListener('toggleModemTest', handleToggleModemModal);
+    
+    return () => {
+      window.removeEventListener('toggleModemTest', handleToggleModemModal);
+    };
+  }, []);
 
   const handleRowClick = (orderId) => {
     selectOrder(orderId);
@@ -68,6 +93,32 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
   const handleCalificacionGuardada = () => {
     setShowCalificacionModal(false);
     setPedidoParaCalificar(null);
+  };
+
+  // Función para manejar llamadas detectadas del modem
+  const handleModemCallDetected = (callInfo) => {
+    console.log('OrdersTable: Llamada detectada del modem:', callInfo);
+    
+    // Establecer la llamada entrante
+    setIncomingCall(callInfo);
+    
+    // Pre-llenar el campo de teléfono con el número detectado
+    setNewOrder(prev => ({
+      ...prev,
+      cliente: callInfo.phoneNumber
+    }));
+    
+    // Abrir automáticamente el modal de direcciones
+    setTelefonoSeleccionado(callInfo.phoneNumber);
+    setShowDireccionesModal(true);
+    
+    // Mostrar notificación visual/sonora
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Llamada Entrante', {
+        body: `Número: ${callInfo.phoneNumber}`,
+        icon: '/favicon.ico'
+      });
+    }
   };
 
   const handleNewOrderChange = (field, value) => {
@@ -641,6 +692,13 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
         }}
         pedido={pedidoParaCalificar}
         onCalificacionGuardada={handleCalificacionGuardada}
+      />
+
+      {/* Modal del sistema del modem */}
+      <ModemModal
+        isOpen={showModemModal}
+        onClose={() => setShowModemModal(false)}
+        onCallDetected={handleModemCallDetected}
       />
     </div>
   );

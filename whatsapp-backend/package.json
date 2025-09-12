@@ -1,0 +1,30 @@
+{
+  "name": "taxi-whatsapp-bot-free",
+  "version": "1.0.0",
+  "description": "WhatsApp Bot GRATIS para sistema de control de taxis",
+  "main": "server-free.js",
+  "scripts": {
+    "start": "node server-free.js",
+    "dev": "nodemon server-free.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.23.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "taxi",
+    "pedidos",
+    "gratis"
+  ],
+  "author": "Sistema Taxi Control",
+  "license": "MIT"
+}

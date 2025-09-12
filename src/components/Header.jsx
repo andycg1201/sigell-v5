@@ -1,31 +1,11 @@
 import React from 'react';
 import { logout } from '../firebase/auth';
-import { useTaxis } from '../contexts/TaxisContext';
-import { useBases } from '../contexts/BasesContext';
-import { useNovedades } from '../contexts/NovedadesContext';
 import { useCierre } from '../contexts/CierreContext';
-import { debugEstadoPedidos, forzarCierreDelDia } from '../firebase/cierre';
-import { getMotivosInhabilitacion, updateMotivosInhabilitacion } from '../firebase/inhabilitaciones';
-import ArchivosModal from './ArchivosModal';
-import LimpiezaModal from './LimpiezaModal';
+import AdminPanel from './AdminPanel';
 
 const Header = ({ user }) => {
-  const { totalTaxis, updateConfig } = useTaxis();
-  const { bases, updateConfig: updateBasesConfig } = useBases();
-  const { novedadesConfig, updateConfig: updateNovedadesConfig } = useNovedades();
-  const { estadoCierre, ejecutarCierreManual, limpiarCache, debugEstado, limpiarHuerfanos, limpiarTodos } = useCierre();
-  const [newTotal, setNewTotal] = React.useState(totalTaxis);
-  const [loading, setLoading] = React.useState(false);
+  const { estadoCierre } = useCierre();
   const [isAdminOpen, setIsAdminOpen] = React.useState(false);
-  const [editingBases, setEditingBases] = React.useState(false);
-  const [tempBases, setTempBases] = React.useState([]);
-  const [editingNovedades, setEditingNovedades] = React.useState(false);
-  const [tempNovedades, setTempNovedades] = React.useState([]);
-  const [showArchivosModal, setShowArchivosModal] = React.useState(false);
-  const [showLimpiezaModal, setShowLimpiezaModal] = React.useState(false);
-  const [editingMotivos, setEditingMotivos] = React.useState(false);
-  const [tempMotivos, setTempMotivos] = React.useState([]);
-  const [motivosConfig, setMotivosConfig] = React.useState(null);
 
   const handleLogout = async () => {
     try {
@@ -35,773 +15,177 @@ const Header = ({ user }) => {
     }
   };
 
-  const handleUpdateConfig = async () => {
-    if (newTotal < 1 || newTotal > 100) {
-      alert('El número de taxis debe estar entre 1 y 100');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await updateConfig(newTotal);
-      alert('Configuración actualizada correctamente');
-    } catch (error) {
-      alert('Error actualizando configuración');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEditBases = () => {
-    setTempBases([...bases]);
-    setEditingBases(true);
-  };
-
-  const handleSaveBases = async () => {
-    setLoading(true);
-    try {
-      await updateBasesConfig(tempBases);
-      setEditingBases(false);
-      alert('Bases actualizadas correctamente');
-    } catch (error) {
-      alert('Error actualizando bases');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancelBases = () => {
-    setTempBases([]);
-    setEditingBases(false);
-  };
-
-  const handleBaseChange = (index, field, value) => {
-    const newBases = [...tempBases];
-    newBases[index] = { ...newBases[index], [field]: value };
-    setTempBases(newBases);
-  };
-
-  const addBase = () => {
-    if (tempBases.length >= 10) {
-      alert('Máximo 10 bases permitidas');
-      return;
-    }
-    const newId = Math.max(...tempBases.map(b => b.id), 0) + 1;
-    setTempBases([...tempBases, { id: newId, nombre: `BASE ${newId}`, direccion: '' }]);
-  };
-
-  const removeBase = (index) => {
-    if (tempBases.length <= 1) {
-      alert('Debe haber al menos una base');
-      return;
-    }
-    setTempBases(tempBases.filter((_, i) => i !== index));
-  };
-
-  // Funciones para manejar novedades
-  const handleEditNovedades = () => {
-    setTempNovedades([...novedadesConfig.novedades]);
-    setEditingNovedades(true);
-  };
-
-  const handleSaveNovedades = async () => {
-    setLoading(true);
-    try {
-      await updateNovedadesConfig({ ...novedadesConfig, novedades: tempNovedades });
-      setEditingNovedades(false);
-      alert('Novedades actualizadas correctamente');
-    } catch (error) {
-      console.error('Error actualizando novedades:', error);
-      alert('Error actualizando novedades');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancelNovedades = () => {
-    setEditingNovedades(false);
-    setTempNovedades([]);
-  };
-
-  const handleNovedadChange = (index, field, value) => {
-    const newNovedades = [...tempNovedades];
-    newNovedades[index] = { ...newNovedades[index], [field]: value };
-    setTempNovedades(newNovedades);
-  };
-
-  const addNovedad = () => {
-    if (tempNovedades.length >= 20) {
-      alert('Máximo 20 novedades permitidas');
-      return;
-    }
-    const newId = Math.max(...tempNovedades.map(n => parseInt(n.codigo.replace('B', '')) || 0), 0) + 1;
-    setTempNovedades([...tempNovedades, { 
-      codigo: `B${newId.toString().padStart(2, '0')}`, 
-      descripcion: '', 
-      activa: true,
-      heredarAlCierre: true 
-    }]);
-  };
-
-  const removeNovedad = (index) => {
-    if (tempNovedades.length <= 1) {
-      alert('Debe haber al menos una novedad');
-      return;
-    }
-    setTempNovedades(tempNovedades.filter((_, i) => i !== index));
-  };
-
-  // Funciones para motivos de inhabilitación
-  const handleEditMotivos = () => {
-    setEditingMotivos(true);
-    setTempMotivos([...motivosConfig.motivos]);
-  };
-
-  const handleSaveMotivos = async () => {
-    try {
-      await updateMotivosInhabilitacion(tempMotivos);
-      setMotivosConfig({ ...motivosConfig, motivos: tempMotivos });
-      setEditingMotivos(false);
-      alert('Motivos de inhabilitación actualizados correctamente');
-    } catch (error) {
-      console.error('Error actualizando motivos:', error);
-      alert('Error actualizando motivos de inhabilitación');
-    }
-  };
-
-  const handleCancelMotivos = () => {
-    setEditingMotivos(false);
-    setTempMotivos([]);
-  };
-
-  const handleMotivoChange = (index, field, value) => {
-    const newMotivos = [...tempMotivos];
-    newMotivos[index] = { ...newMotivos[index], [field]: value };
-    setTempMotivos(newMotivos);
-  };
-
-  const addMotivo = () => {
-    if (tempMotivos.length >= 5) {
-      alert('Máximo 5 motivos permitidos');
-      return;
-    }
-    setTempMotivos([...tempMotivos, {
-      codigo: '',
-      concepto: '',
-      color: '#dc2626',
-      icono: '🚫',
-      activo: true
-    }]);
-  };
-
-  const removeMotivo = (index) => {
-    const newMotivos = tempMotivos.filter((_, i) => i !== index);
-    setTempMotivos(newMotivos);
-  };
-
-  // Función para manejar cierre manual
-  const handleCierreManual = async () => {
-    if (!estadoCierre.necesitaCierre) {
-      alert('No se necesita cierre en este momento. El sistema ya está al día.');
-      return;
-    }
-
-    const confirmar = window.confirm(
-      `¿Está seguro de ejecutar el cierre manual?\n\n` +
-      `Esto archivará todos los pedidos del día y reseteará los contadores.\n` +
-      `Último cierre: ${estadoCierre.ultimoCierre}\n` +
-      `Fecha actual: ${estadoCierre.fechaHoy}`
-    );
-
-    if (!confirmar) return;
-
-    setLoading(true);
-    try {
-      const resultado = await ejecutarCierreManual();
-      alert(
-        `Cierre manual ejecutado exitosamente:\n` +
-        `- Pedidos archivados: ${resultado.pedidosArchivados}\n` +
-        `- Taxis actualizados: ${resultado.taxisActualizados}\n` +
-        `- Fecha de cierre: ${resultado.fechaCierre}`
-      );
-    } catch (error) {
-      console.error('Error en cierre manual:', error);
-      alert('Error ejecutando cierre manual: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Función para debug del estado
-  const handleDebugEstado = async () => {
-    try {
-      const estado = await debugEstado();
-      alert(
-        `Estado actual del sistema:\n\n` +
-        `Pedidos activos: ${estado.pedidosActivos}\n` +
-        `Archivos creados: ${estado.archivos}\n` +
-        `Necesita cierre: ${estado.estadoCierre.necesitaCierre}\n` +
-        `Último cierre: ${estado.estadoCierre.ultimoCierre}\n` +
-        `Fecha hoy: ${estado.estadoCierre.fechaHoy}\n\n` +
-        `Revisa la consola para más detalles.`
-      );
-    } catch (error) {
-      console.error('Error en debug:', error);
-      alert('Error ejecutando debug: ' + error.message);
-    }
-  };
-
-  // Función para limpiar pedidos huérfanos
-  const handleLimpiarHuerfanos = async () => {
-    const confirmar = window.confirm(
-      `🧹 Limpiar Pedidos Huérfanos\n\n` +
-      `Esto archivará cualquier pedido que haya quedado después del cierre automático.\n` +
-      `Incluye salidas de base y pedidos normales.\n\n` +
-      `¿Está seguro de continuar?`
-    );
-
-    if (!confirmar) return;
-
-    setLoading(true);
-    try {
-      const resultado = await limpiarHuerfanos();
-      alert(
-        `Limpieza de huérfanos completada:\n` +
-        `- Pedidos limpiados: ${resultado.pedidosLimpiados}\n` +
-        `- Fecha de archivo: ${resultado.fechaArchivo}\n\n` +
-        `${resultado.pedidosLimpiados > 0 ? 'Los pedidos han sido archivados correctamente.' : 'No había pedidos huérfanos.'}`
-      );
-    } catch (error) {
-      console.error('Error limpiando huérfanos:', error);
-      alert('Error limpiando pedidos huérfanos: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Función para forzar cierre (testing)
-  const handleForzarCierre = async () => {
-    const confirmar = window.confirm(
-      `⚠️ ADVERTENCIA: Cierre Forzado\n\n` +
-      `Esto archivará TODOS los pedidos actuales como si fueran de ayer.\n` +
-      `¿Está seguro de continuar?\n\n` +
-      `Esta función es solo para testing.`
-    );
-
-    if (!confirmar) return;
-
-    setLoading(true);
-    try {
-      const resultado = await forzarCierreDelDia();
-      alert(
-        `Cierre forzado ejecutado:\n` +
-        `- Pedidos archivados: ${resultado.pedidosArchivados}\n` +
-        `- Fecha de archivo: ${resultado.fechaArchivo}\n\n` +
-        `Los pedidos deberían desaparecer de la pantalla.`
-      );
-    } catch (error) {
-      console.error('Error en cierre forzado:', error);
-      alert('Error ejecutando cierre forzado: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Función para limpiar cache
-  const handleLimpiarCache = () => {
-    const confirmar = window.confirm(
-      `🧹 Limpiar Cache\n\n` +
-      `Esto limpiará el cache local y forzará nuevas consultas a Firebase.\n` +
-      `¿Está seguro de continuar?`
-    );
-
-    if (!confirmar) return;
-
-    limpiarCache();
-    alert('Cache limpiado exitosamente. Las próximas consultas serán a Firebase.');
-  };
-
-  // Función de emergencia para limpiar todos los pedidos
-  const handleLimpiarTodos = async () => {
-    const confirmar = window.confirm(
-      `🚨 LIMPIEZA DE EMERGENCIA\n\n` +
-      `Esto archivará TODOS los pedidos actuales (incluyendo salidas de base).\n` +
-      `Es una función de emergencia para casos donde el cierre automático falló.\n\n` +
-      `¿Está seguro de continuar?`
-    );
-
-    if (!confirmar) return;
-
-    setLoading(true);
-    try {
-      const resultado = await limpiarTodos();
-      alert(
-        `Limpieza de emergencia completada:\n` +
-        `- Pedidos limpiados: ${resultado.pedidosLimpiados}\n` +
-        `- Fecha de archivo: ${resultado.fechaArchivo}\n\n` +
-        `Todos los pedidos han sido archivados correctamente.`
-      );
-    } catch (error) {
-      console.error('Error en limpieza de emergencia:', error);
-      alert('Error en limpieza de emergencia: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    const options = {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    };
-    return now.toLocaleString('es-EC', options);
-  };
-
-  const [dateTime, setDateTime] = React.useState(getCurrentDateTime());
-
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setDateTime(getCurrentDateTime());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Cargar configuración de motivos de inhabilitación
-  React.useEffect(() => {
-    const loadMotivosConfig = async () => {
-      try {
-        const config = await getMotivosInhabilitacion();
-        setMotivosConfig(config);
-      } catch (error) {
-        console.error('Error cargando configuración de motivos:', error);
-      }
-    };
-    loadMotivosConfig();
-  }, []);
-
   return (
     <header className="header">
-      <div className="header-left">
-        <h1>Sigell</h1>
-        <span className="datetime">{dateTime}</span>
-      </div>
-      <div className="header-right">
-        <div className="user-info">
-          Usuario: {user?.email} ({user?.email === 'admin@sigell.com' ? 'ADMIN' : 'OPERADOR'})
-        </div>
-        {user?.email === 'admin@sigell.com' && (
-          <div className="admin-section-header">
-            <button 
-              className="admin-toggle-btn-header"
-              onClick={() => setIsAdminOpen(!isAdminOpen)}
-              title="Panel de Administración"
-            >
-              ⚙️
-            </button>
-            
-            {isAdminOpen && (
-              <div className="admin-panel-popup-header">
-                <div className="admin-panel-header">
-                  <div className="admin-header">
-                    <h3>Panel de Administración</h3>
-                    <button 
-                      className="close-btn"
-                      onClick={() => setIsAdminOpen(false)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <label htmlFor="totalTaxis">Número total de taxis:</label>
-                    <input
-                      type="number"
-                      id="totalTaxis"
-                      className="config-input"
-                      value={newTotal}
-                      onChange={(e) => setNewTotal(parseInt(e.target.value) || 0)}
-                      min="1"
-                      max="100"
-                    />
-                    <button
-                      onClick={handleUpdateConfig}
-                      className="update-button"
-                      disabled={loading}
-                    >
-                      {loading ? 'Actualizando...' : 'Actualizar'}
-                    </button>
-                  </div>
-                  <div className="config-info">
-                    Configuración actual: {totalTaxis} taxis
-                  </div>
-                  
-                  {/* Configuración de Bases */}
-                  <div className="bases-config-section">
-                    <div className="section-header">
-                      <h4>Configuración de Bases</h4>
-                      <button 
-                        className="edit-bases-btn"
-                        onClick={handleEditBases}
-                        disabled={editingBases}
-                      >
-                        {editingBases ? 'Editando...' : '✏️ Editar Bases'}
-                      </button>
-                    </div>
-                    
-                    {editingBases ? (
-                      <div className="bases-editor">
-                        {tempBases.map((base, index) => (
-                          <div key={base.id} className="base-editor-row">
-                            <input
-                              type="text"
-                              value={base.nombre}
-                              onChange={(e) => handleBaseChange(index, 'nombre', e.target.value)}
-                              placeholder="Nombre de la base"
-                              className="base-input"
-                            />
-                            <input
-                              type="text"
-                              value={base.direccion}
-                              onChange={(e) => handleBaseChange(index, 'direccion', e.target.value)}
-                              placeholder="Dirección"
-                              className="base-input"
-                            />
-                            <button 
-                              className="remove-base-btn"
-                              onClick={() => removeBase(index)}
-                              disabled={tempBases.length <= 1}
-                            >
-                              🗑️
-                            </button>
-                          </div>
-                        ))}
-                        
-                        <div className="bases-actions">
-                          <button 
-                            className="add-base-btn"
-                            onClick={addBase}
-                            disabled={tempBases.length >= 10}
-                          >
-                            ➕ Agregar Base
-                          </button>
-                          <div className="bases-save-cancel">
-                            <button 
-                              className="save-bases-btn"
-                              onClick={handleSaveBases}
-                              disabled={loading}
-                            >
-                              {loading ? 'Guardando...' : '💾 Guardar'}
-                            </button>
-                            <button 
-                              className="cancel-bases-btn"
-                              onClick={handleCancelBases}
-                              disabled={loading}
-                            >
-                              ❌ Cancelar
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bases-list">
-                        {bases.map((base) => (
-                          <div key={base.id} className="base-item">
-                            <strong>{base.nombre}</strong>
-                            <span>{base.direccion || 'Sin dirección'}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Configuración de Novedades */}
-                  <div className="novedades-config-section">
-                    <div className="section-header">
-                      <h4>🚨 Configuración de Novedades</h4>
-                      <button 
-                        className="edit-novedades-btn"
-                        onClick={handleEditNovedades}
-                        disabled={editingNovedades}
-                      >
-                        {editingNovedades ? 'Editando...' : '✏️ Editar Novedades'}
-                      </button>
-                    </div>
-                    
-                    {editingNovedades ? (
-                      <div className="novedades-editor">
-                        {tempNovedades.map((novedad, index) => (
-                          <div key={index} className="novedad-editor-row">
-                            <input
-                              type="text"
-                              className="novedad-input codigo"
-                              value={novedad.codigo}
-                              onChange={(e) => handleNovedadChange(index, 'codigo', e.target.value)}
-                              placeholder="Código (ej: B54)"
-                            />
-                            <input
-                              type="text"
-                              className="novedad-input descripcion"
-                              value={novedad.descripcion}
-                              onChange={(e) => handleNovedadChange(index, 'descripcion', e.target.value)}
-                              placeholder="Descripción"
-                            />
-                            <label className="novedad-checkbox">
-                              <input
-                                type="checkbox"
-                                checked={novedad.activa}
-                                onChange={(e) => handleNovedadChange(index, 'activa', e.target.checked)}
-                              />
-                              Activa
-                            </label>
-                            <label className="novedad-checkbox">
-                              <input
-                                type="checkbox"
-                                checked={novedad.heredarAlCierre !== false}
-                                onChange={(e) => handleNovedadChange(index, 'heredarAlCierre', e.target.checked)}
-                              />
-                              Heredar
-                            </label>
-                            <button 
-                              className="remove-novedad-btn"
-                              onClick={() => removeNovedad(index)}
-                            >
-                              🗑️
-                            </button>
-                          </div>
-                        ))}
-                        
-                        <div className="novedades-actions">
-                          <button className="add-novedad-btn" onClick={addNovedad}>
-                            ➕ Agregar Novedad
-                          </button>
-                        </div>
-                        
-                        <div className="novedades-save-cancel">
-                          <button 
-                            className="save-novedades-btn"
-                            onClick={handleSaveNovedades}
-                            disabled={loading}
-                          >
-                            {loading ? 'Guardando...' : '💾 Guardar'}
-                          </button>
-                          <button 
-                            className="cancel-novedades-btn"
-                            onClick={handleCancelNovedades}
-                            disabled={loading}
-                          >
-                            ❌ Cancelar
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="novedades-list">
-                        {novedadesConfig.novedades?.map((novedad, index) => (
-                          <div key={index} className="novedad-item">
-                            <strong>{novedad.codigo}</strong>
-                            <span>{novedad.descripcion || 'Sin descripción'}</span>
-                            <span className={`status ${novedad.activa ? 'activa' : 'inactiva'}`}>
-                              {novedad.activa ? '✅' : '❌'}
-                            </span>
-                            <span className={`status ${novedad.heredarAlCierre !== false ? 'heredar' : 'no-heredar'}`}>
-                              {novedad.heredarAlCierre !== false ? '🔄' : '🚫'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Configuración de Motivos de Inhabilitación */}
-                  <div className="motivos-config-section">
-                    <div className="section-header">
-                      <h4>🚫 Motivos de Inhabilitación</h4>
-                      <button 
-                        className="edit-motivos-btn"
-                        onClick={handleEditMotivos}
-                        disabled={editingMotivos}
-                      >
-                        {editingMotivos ? 'Editando...' : '✏️ Editar Motivos'}
-                      </button>
-                    </div>
-                    
-                    {!editingMotivos ? (
-                      <div className="motivos-list">
-                        {motivosConfig?.motivos?.map((motivo, index) => (
-                          <div key={index} className="motivo-item">
-                            <span 
-                              className="motivo-icono" 
-                              style={{ color: motivo.color }}
-                            >
-                              {motivo.icono}
-                            </span>
-                            <span className="motivo-codigo">{motivo.codigo}</span>
-                            <span className="motivo-concepto">{motivo.concepto}</span>
-                            <span className={`status ${motivo.activa ? 'activa' : 'inactiva'}`}>
-                              {motivo.activa ? '✅' : '❌'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="motivos-editor">
-                        <div className="editor-header">
-                          <span>Configurar motivos de inhabilitación (máximo 5)</span>
-                          <button className="add-motivo-btn" onClick={addMotivo}>
-                            ➕ Agregar Motivo
-                          </button>
-                        </div>
-                        
-                        <div className="motivos-editor-list">
-                          {tempMotivos.map((motivo, index) => (
-                            <div key={index} className="motivo-editor-row">
-                              <input
-                                type="text"
-                                className="motivo-input codigo"
-                                value={motivo.codigo}
-                                onChange={(e) => handleMotivoChange(index, 'codigo', e.target.value)}
-                                placeholder="Código (ej: GER)"
-                              />
-                              <input
-                                type="text"
-                                className="motivo-input concepto"
-                                value={motivo.concepto}
-                                onChange={(e) => handleMotivoChange(index, 'concepto', e.target.value)}
-                                placeholder="Concepto"
-                              />
-                              <input
-                                type="color"
-                                className="motivo-input color"
-                                value={motivo.color}
-                                onChange={(e) => handleMotivoChange(index, 'color', e.target.value)}
-                              />
-                              <input
-                                type="text"
-                                className="motivo-input icono"
-                                value={motivo.icono}
-                                onChange={(e) => handleMotivoChange(index, 'icono', e.target.value)}
-                                placeholder="Icono"
-                              />
-                              <label className="motivo-checkbox">
-                                <input
-                                  type="checkbox"
-                                  checked={motivo.activa}
-                                  onChange={(e) => handleMotivoChange(index, 'activa', e.target.checked)}
-                                />
-                                Activa
-                              </label>
-                              <button 
-                                className="remove-motivo-btn"
-                                onClick={() => removeMotivo(index)}
-                              >
-                                🗑️
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                        
-                        <div className="editor-actions">
-                          <button className="cancel-btn" onClick={handleCancelMotivos}>
-                            Cancelar
-                          </button>
-                          <button className="save-btn" onClick={handleSaveMotivos}>
-                            Guardar Cambios
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="admin-actions">
-                    <button 
-                      className="btn-cierre-manual"
-                      onClick={handleCierreManual}
-                      disabled={loading || !estadoCierre.necesitaCierre}
-                      title={estadoCierre.necesitaCierre ? 
-                        `Cierre pendiente desde ${estadoCierre.ultimoCierre}` : 
-                        'Sistema al día - no se necesita cierre'
-                      }
-                    >
-                      {loading ? '🔄 Procesando...' : '🔄 Cierre Manual'}
-                    </button>
-                    <button 
-                      className="btn-archivos"
-                      onClick={() => setShowArchivosModal(true)}
-                    >
-                      📁 Archivos
-                    </button>
-                    <button 
-                      className="btn-debug"
-                      onClick={handleDebugEstado}
-                    >
-                      🔍 Debug
-                    </button>
-                    <button 
-                      className="btn-forzar-cierre"
-                      onClick={handleForzarCierre}
-                      disabled={loading}
-                    >
-                      ⚡ Forzar Cierre
-                    </button>
-                    <button 
-                      className="btn-limpiar-cache"
-                      onClick={handleLimpiarCache}
-                    >
-                      🧹 Limpiar Cache
-                    </button>
-                    <button 
-                      className="btn-limpiar-huerfanos"
-                      onClick={handleLimpiarHuerfanos}
-                      disabled={loading}
-                      title="Archivar pedidos que quedaron después del cierre automático"
-                    >
-                      🗑️ Limpiar Huérfanos
-                    </button>
-                    <button 
-                      className="btn-limpiar-todos"
-                      onClick={handleLimpiarTodos}
-                      disabled={loading}
-                      title="Limpieza de emergencia - archiva TODOS los pedidos actuales"
-                    >
-                      🚨 Limpiar Todos
-                    </button>
-                    <button 
-                      className="btn-limpieza-temporal"
-                      onClick={() => setShowLimpiezaModal(true)}
-                      title="Limpieza temporal - selecciona qué borrar (clientes, pedidos, contadores, archivos)"
-                    >
-                      🧹 Limpieza Temporal
-                    </button>
-                    <button className="btn-stats">📊 Estadísticas</button>
-                    <button className="btn-export">📤 Exportar</button>
-                  </div>
-                </div>
-              </div>
+      <div className="header-content">
+        <div className="header-left">
+          <h1>🚕 Sigell</h1>
+          <div className="system-status">
+            <span className={`status-indicator ${estadoCierre.necesitaCierre ? 'pending' : 'ok'}`}>
+              {estadoCierre.necesitaCierre ? '⚠️ Cierre Pendiente' : '✅ Sistema Al Día'}
+            </span>
+            {estadoCierre.necesitaCierre && (
+              <span className="status-detail">
+                Último cierre: {estadoCierre.ultimoCierre}
+              </span>
             )}
           </div>
-        )}
-        <button onClick={handleLogout} className="signout-button">
-          Cerrar Sesión
-        </button>
+        </div>
+
+        <div className="header-right">
+          <div className="user-info">
+            <span className="user-name">{user?.email || 'Usuario'}</span>
+            <button 
+              onClick={() => setIsAdminOpen(true)}
+              className="admin-button"
+              title="Panel Administrativo"
+            >
+              ⚙️ Administración
+            </button>
+            <button onClick={handleLogout} className="signout-button">
+              Cerrar Sesión
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Modal de Archivos */}
-      <ArchivosModal 
-        isOpen={showArchivosModal}
-        onClose={() => setShowArchivosModal(false)}
+      {/* Panel Administrativo */}
+      <AdminPanel
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
       />
 
-      {/* Modal de Limpieza Temporal */}
-      <LimpiezaModal 
-        isOpen={showLimpiezaModal}
-        onClose={() => setShowLimpiezaModal(false)}
-      />
+      <style jsx>{`
+        .header {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 15px 20px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          position: sticky;
+          top: 0;
+          z-index: 100;
+        }
+
+        .header-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .header-left h1 {
+          margin: 0;
+          font-size: 1.8rem;
+          font-weight: 700;
+        }
+
+        .system-status {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .status-indicator {
+          font-size: 0.9rem;
+          font-weight: 500;
+          padding: 4px 8px;
+          border-radius: 4px;
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .status-indicator.pending {
+          background: rgba(255, 193, 7, 0.2);
+          color: #ffc107;
+        }
+
+        .status-indicator.ok {
+          background: rgba(40, 167, 69, 0.2);
+          color: #28a745;
+        }
+
+        .status-detail {
+          font-size: 0.8rem;
+          opacity: 0.8;
+        }
+
+        .header-right {
+          display: flex;
+          align-items: center;
+        }
+
+        .user-info {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+        }
+
+        .user-name {
+          font-weight: 500;
+          font-size: 0.9rem;
+        }
+
+        .admin-button {
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: white;
+          padding: 8px 16px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 0.9rem;
+          font-weight: 500;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+        }
+
+        .admin-button:hover {
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .signout-button {
+          background: rgba(220, 53, 69, 0.2);
+          border: 1px solid rgba(220, 53, 69, 0.3);
+          color: #dc3545;
+          padding: 8px 16px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 0.9rem;
+          font-weight: 500;
+          transition: all 0.2s;
+        }
+
+        .signout-button:hover {
+          background: rgba(220, 53, 69, 0.3);
+          border-color: rgba(220, 53, 69, 0.5);
+        }
+
+        @media (max-width: 768px) {
+          .header-content {
+            flex-direction: column;
+            gap: 15px;
+          }
+
+          .header-left {
+            flex-direction: column;
+            gap: 10px;
+            text-align: center;
+          }
+
+          .user-info {
+            flex-wrap: wrap;
+            justify-content: center;
+          }
+        }
+      `}</style>
     </header>
   );
 };

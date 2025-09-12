@@ -200,22 +200,21 @@ export const CierreProvider = ({ children }) => {
       const now = new Date();
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
+      const currentSecond = now.getSeconds();
       
-      // Solo verificar en la ventana de medianoche (23:58 - 00:02)
-      if ((currentHour === 23 && currentMinute >= 58) || 
-          (currentHour === 0 && currentMinute <= 2)) {
-        console.log('Ventana de medianoche detectada, verificando cierre automático...');
+      // Solo ejecutar cierre automático exactamente a medianoche (00:00:00)
+      if (currentHour === 0 && currentMinute === 0 && currentSecond === 0) {
+        console.log('Medianoche detectada (00:00:00), ejecutando cierre automático...');
         verificarCierreAutomatico().catch(error => {
           console.error('Error en cierre automático de medianoche:', error);
         });
       }
     };
 
-    // Verificar cada 5 minutos (reducido de 1 minuto)
-    const interval = setInterval(checkMidnight, 300000);
+    // Verificar cada segundo para detectar medianoche exacta
+    const interval = setInterval(checkMidnight, 1000);
     
-    // Verificar inmediatamente al cargar
-    checkMidnight();
+    // No verificar inmediatamente al cargar (solo a medianoche)
 
     return () => clearInterval(interval);
   }, [verificarCierreAutomatico]);
