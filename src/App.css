@@ -1235,6 +1235,17 @@
   cursor: not-allowed;
 }
 
+.taxi-button.bloqueado {
+  background: rgba(108, 117, 125, 0.3) !important;
+  color: #6c757d !important;
+  border-color: #6c757d !important;
+  cursor: not-allowed !important;
+}
+
+.taxi-button.bloqueado:hover {
+  background: rgba(108, 117, 125, 0.3) !important;
+}
+
 /* Badge de novedades */
 .taxi-button {
   position: relative;

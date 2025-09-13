@@ -3,7 +3,7 @@ import { useTaxis } from '../contexts/TaxisContext';
 import { useBases } from '../contexts/BasesContext';
 import { useNovedades } from '../contexts/NovedadesContext';
 import { useCierre } from '../contexts/CierreContext';
-import { debugEstadoPedidos, forzarCierreDelDia } from '../firebase/cierre';
+import { debugEstadoPedidos, forzarCierreDelDia, resetearContadores } from '../firebase/cierre';
 import { getMotivosInhabilitacion, updateMotivosInhabilitacion } from '../firebase/inhabilitaciones';
 import ArchivosModal from './ArchivosModal';
 import LimpiezaModal from './LimpiezaModal';
@@ -13,13 +13,14 @@ import LimpiezaModal from './LimpiezaModal';
  * Agrupa todas las opciones de administración por categorías
  */
 const AdminPanel = ({ isOpen, onClose }) => {
-  const { totalTaxis, updateConfig } = useTaxis();
+  const { totalTaxis, taxiBloqueados, updateConfig } = useTaxis();
   const { bases, updateConfig: updateBasesConfig } = useBases();
   const { novedadesConfig, updateConfig: updateNovedadesConfig } = useNovedades();
-  const { estadoCierre, ejecutarCierreManual, limpiarCache, debugEstado, limpiarHuerfanos, limpiarTodos } = useCierre();
+  const { estadoCierre, ejecutarCierreManual, verificarCierreAutomatico, limpiarCache, debugEstado, limpiarHuerfanos, limpiarTodos } = useCierre();
   
   const [activeTab, setActiveTab] = useState('sistema');
   const [newTotal, setNewTotal] = useState(totalTaxis);
+  const [newTaxiBloqueados, setNewTaxiBloqueados] = useState(taxiBloqueados);
   const [loading, setLoading] = useState(false);
   const [editingBases, setEditingBases] = useState(false);
   const [tempBases, setTempBases] = useState([]);
@@ -49,6 +50,36 @@ const AdminPanel = ({ isOpen, onClose }) => {
         alert('Cierre forzado ejecutado correctamente');
       } catch (error) {
         alert('Error ejecutando cierre forzado');
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleVerificarCierreAutomatico = async () => {
+    setLoading(true);
+    try {
+      console.log('Verificando cierre automático manualmente...');
+      await verificarCierreAutomatico();
+      alert('Verificación de cierre automático completada');
+    } catch (error) {
+      alert('Error en verificación de cierre automático');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetearContadores = async () => {
+    if (confirm('¿Estás seguro de resetear todos los contadores a cero?')) {
+      setLoading(true);
+      try {
+        console.log('Reseteando contadores manualmente...');
+        await resetearContadores();
+        alert('Contadores reseteados correctamente');
+      } catch (error) {
+        alert('Error reseteando contadores');
         console.error(error);
       } finally {
         setLoading(false);
@@ -106,9 +137,21 @@ const AdminPanel = ({ isOpen, onClose }) => {
       return;
     }
 
+    // Validar números de taxis bloqueados
+    const bloqueadosArray = newTaxiBloqueados
+      .split(',')
+      .map(num => parseInt(num.trim()))
+      .filter(num => !isNaN(num) && num > 0);
+    
+    const maxBloqueado = Math.max(...bloqueadosArray, 0);
+    if (maxBloqueado > newTotal) {
+      alert(`Los taxis bloqueados no pueden ser mayores al total (${newTotal})`);
+      return;
+    }
+
     setLoading(true);
     try {
-      await updateConfig(newTotal);
+      await updateConfig(newTotal, newTaxiBloqueados);
       alert('Configuración actualizada correctamente');
     } catch (error) {
       alert('Error actualizando configuración');
@@ -224,6 +267,22 @@ const AdminPanel = ({ isOpen, onClose }) => {
                         className="btn btn-primary"
                       >
                         {loading ? '🔄 Procesando...' : '🔄 Cierre Manual'}
+                      </button>
+                      <button 
+                        onClick={handleVerificarCierreAutomatico}
+                        disabled={loading}
+                        className="btn btn-secondary"
+                        style={{ marginTop: '8px' }}
+                      >
+                        {loading ? '🔄 Verificando...' : '🔍 Verificar Cierre Auto'}
+                      </button>
+                      <button 
+                        onClick={handleResetearContadores}
+                        disabled={loading}
+                        className="btn btn-warning"
+                        style={{ marginTop: '8px' }}
+                      >
+                        {loading ? '🔄 Reseteando...' : '🔢 Resetear Contadores'}
                       </button>
                     </div>
                   </div>
@@ -350,7 +409,19 @@ const AdminPanel = ({ isOpen, onClose }) => {
                           min="1"
                           max="100"
                           className="form-control"
+                          placeholder="Número total de taxis"
                         />
+                      </div>
+                      <div className="input-group" style={{ marginTop: '10px' }}>
+                        <input
+                          type="text"
+                          value={newTaxiBloqueados}
+                          onChange={(e) => setNewTaxiBloqueados(e.target.value)}
+                          className="form-control"
+                          placeholder="Taxis bloqueados (ej: 21,31,45)"
+                        />
+                      </div>
+                      <div className="input-group" style={{ marginTop: '10px' }}>
                         <button 
                           onClick={handleUpdateConfig}
                           disabled={loading}

@@ -127,11 +127,6 @@ export const resetearContadores = async () => {
   try {
     console.log('Reseteando contadores a cero');
     
-    // Crear contadores para el día siguiente (mañana)
-    const manana = new Date();
-    manana.setDate(manana.getDate() + 1);
-    const fechaManana = manana.toISOString().split('T')[0];
-    
     const contadoresRef = doc(db, 'contadores', 'diarios');
     const docSnap = await getDoc(contadoresRef);
     
@@ -140,11 +135,18 @@ export const resetearContadores = async () => {
       contadores = docSnap.data();
     }
     
-    // Inicializar contadores del día siguiente en cero (no del día actual)
+    // Resetear contadores del día actual a cero
+    const hoy = new Date().toISOString().split('T')[0];
+    contadores[hoy] = {};
+    
+    // También inicializar contadores para mañana en cero
+    const manana = new Date();
+    manana.setDate(manana.getDate() + 1);
+    const fechaManana = manana.toISOString().split('T')[0];
     contadores[fechaManana] = {};
     
     await setDoc(contadoresRef, contadores);
-    console.log(`Contadores inicializados para mañana (${fechaManana})`);
+    console.log(`Contadores reseteados para hoy (${hoy}) e inicializados para mañana (${fechaManana})`);
     
     return true;
   } catch (error) {

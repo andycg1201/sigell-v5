@@ -19,11 +19,13 @@ export const getTaxisConfig = async () => {
       // Crear configuración por defecto - checkboxes desmarcados, botones activos
       const defaultConfig = {
         totalTaxis: 10,
+        taxisBloqueados: '',
         taxis: Array.from({ length: 10 }, (_, i) => ({
           id: i + 1,
           numero: i + 1,
           habilitado: true, // Botones activos por defecto
-          checkboxMarcado: false // Checkboxes desmarcados por defecto
+          checkboxMarcado: false, // Checkboxes desmarcados por defecto
+          bloqueado: false // No bloqueados por defecto
         }))
       };
       await setDoc(docRef, defaultConfig);
@@ -36,17 +38,25 @@ export const getTaxisConfig = async () => {
 };
 
 // Función para actualizar la configuración de taxis
-export const updateTaxisConfig = async (totalTaxis) => {
+export const updateTaxisConfig = async (totalTaxis, taxisBloqueados = '') => {
   try {
     const docRef = doc(db, 'configuracion', 'taxis');
+    
+    // Parsear taxis bloqueados
+    const bloqueadosArray = taxisBloqueados
+      .split(',')
+      .map(num => parseInt(num.trim()))
+      .filter(num => !isNaN(num) && num > 0);
+    
     const taxis = Array.from({ length: totalTaxis }, (_, i) => ({
       id: i + 1,
       numero: i + 1,
       habilitado: true, // Botones activos por defecto
-      checkboxMarcado: false // Checkboxes desmarcados por defecto
+      checkboxMarcado: false, // Checkboxes desmarcados por defecto
+      bloqueado: bloqueadosArray.includes(i + 1) // Taxis bloqueados permanentemente
     }));
     
-    await setDoc(docRef, { totalTaxis, taxis });
+    await setDoc(docRef, { totalTaxis, taxis, taxisBloqueados });
     
     // Inicializar contadores para los nuevos taxis
     const today = new Date().toISOString().split('T')[0];

@@ -15,6 +15,7 @@ export const TaxisProvider = ({ children }) => {
   const [taxis, setTaxis] = useState([]);
   const [counters, setCounters] = useState({});
   const [totalTaxis, setTotalTaxis] = useState(10);
+  const [taxiBloqueados, setTaxiBloqueados] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,15 +24,16 @@ export const TaxisProvider = ({ children }) => {
       setTaxis(data.config.taxis || []);
       setCounters(data.counters || {});
       setTotalTaxis(data.config.totalTaxis || 10);
+      setTaxiBloqueados(data.config.taxiBloqueados || '');
       setLoading(false);
     });
 
     return unsubscribe;
   }, []);
 
-  const updateConfig = async (newTotalTaxis) => {
+  const updateConfig = async (newTotalTaxis, newTaxiBloqueados = '') => {
     try {
-      await updateTaxisConfig(newTotalTaxis);
+      await updateTaxisConfig(newTotalTaxis, newTaxiBloqueados);
     } catch (error) {
       console.error('Error actualizando configuración:', error);
       throw error;
@@ -73,6 +75,7 @@ export const TaxisProvider = ({ children }) => {
     taxis,
     counters,
     totalTaxis,
+    taxiBloqueados,
     loading,
     updateConfig,
     incrementCounter,

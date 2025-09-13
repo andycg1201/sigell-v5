@@ -32,10 +32,10 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
   const realNovedadesCount = useMemo(() => getTaxiNovedadesCount(taxi.id), [taxi.id, getTaxiNovedadesCount]);
   const realNovedadesActivas = useMemo(() => getTaxiNovedadesActivas(taxi.id), [taxi.id, getTaxiNovedadesActivas]);
   
-  // Estado visual combinado: inhabilitado si tiene checkbox marcado O tiene inhabilitaciones activas
+  // Estado visual combinado: inhabilitado si tiene checkbox marcado O tiene inhabilitaciones activas O está bloqueado
   const isVisualmenteInhabilitado = useMemo(() => {
-    return taxi.checkboxMarcado || motivosInhabilitacion.length > 0;
-  }, [taxi.checkboxMarcado, motivosInhabilitacion.length]);
+    return taxi.checkboxMarcado || motivosInhabilitacion.length > 0 || taxi.bloqueado;
+  }, [taxi.checkboxMarcado, motivosInhabilitacion.length, taxi.bloqueado]);
   
   // Combinar novedades reales con optimistas (evitando duplicados) - OPTIMIZADO
   const novedadesData = useMemo(() => {
@@ -323,7 +323,7 @@ const TaxiButton = ({ taxi, onAssignUnit, orders, onCreateBaseOrder, onShowBaseM
         )}
       </div>
       <button
-        className={`taxi-button ${isVisualmenteInhabilitado ? 'inhabilitado' : ''}`}
+        className={`taxi-button ${isVisualmenteInhabilitado ? 'inhabilitado' : ''} ${taxi.bloqueado ? 'bloqueado' : ''}`}
         onClick={handleButtonClick}
         onContextMenu={handleRightClick}
         disabled={isVisualmenteInhabilitado}

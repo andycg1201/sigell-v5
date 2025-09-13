@@ -214,19 +214,31 @@ export const CierreProvider = ({ children }) => {
       const currentMinute = now.getMinutes();
       const currentSecond = now.getSeconds();
       
-      // Solo ejecutar cierre automático exactamente a medianoche (00:00:00)
-      if (currentHour === 0 && currentMinute === 0 && currentSecond === 0) {
-        console.log('Medianoche detectada (00:00:00), ejecutando cierre automático...');
+      // Debug: Log cada 5 minutos para verificar que el timer funciona
+      if (currentMinute % 5 === 0 && currentSecond < 30) {
+        console.log(`Timer funcionando - Hora actual: ${currentHour}:${currentMinute}`);
+      }
+      
+      // Verificar si necesita cierre automático (si está entre 00:00 y 00:05)
+      if (currentHour === 0 && currentMinute <= 5) {
+        console.log('Verificando si necesita cierre automático...');
         verificarCierreAutomatico().catch(error => {
-          console.error('Error en cierre automático de medianoche:', error);
+          console.error('Error en verificación de cierre automático:', error);
         });
       }
     };
 
-    // Verificar cada segundo para detectar medianoche exacta
-    const interval = setInterval(checkMidnight, 1000);
+    // Verificar cada 30 segundos para detectar medianoche (más eficiente)
+    const interval = setInterval(checkMidnight, 30000);
     
-    // No verificar inmediatamente al cargar (solo a medianoche)
+    // Verificar inmediatamente al cargar si estamos en la ventana de medianoche
+    const now = new Date();
+    if (now.getHours() === 0 && now.getMinutes() <= 5) {
+      console.log('Sistema iniciado en ventana de medianoche, verificando cierre...');
+      verificarCierreAutomatico().catch(error => {
+        console.error('Error en verificación inicial de cierre:', error);
+      });
+    }
 
     return () => clearInterval(interval);
   }, [verificarCierreAutomatico]);
