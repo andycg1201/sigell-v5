@@ -62,21 +62,33 @@ export const CierreProvider = ({ children }) => {
       console.log('Consultando Firebase para estado de cierre');
       const estado = await verificarCierreDelDia();
       
+      // Verificar si estamos en la última media hora antes de medianoche
+      const ahoraFecha = new Date();
+      const hora = ahoraFecha.getHours();
+      const minuto = ahoraFecha.getMinutes();
+      const enUltimaMediaHora = (hora === 23 && minuto >= 30) || (hora === 0 && minuto <= 30);
+      
+      // Solo mostrar "necesita cierre" si realmente necesita cierre Y estamos en la última media hora
+      const estadoConHora = {
+        ...estado,
+        necesitaCierre: estado.necesitaCierre && enUltimaMediaHora
+      };
+      
       // Actualizar cache local
       setCacheLocal({
         ultimaVerificacion: ahora,
-        estadoCache: estado,
+        estadoCache: estadoConHora,
         fechaCache: hoy
       });
       
       setEstadoCierre(prev => ({
         ...prev,
-        ...estado,
+        ...estadoConHora,
         procesando: false
       }));
       
-      console.log('Estado del cierre verificado:', estado);
-      return estado;
+      console.log('Estado del cierre verificado:', estadoConHora);
+      return estadoConHora;
     } catch (error) {
       console.error('Error verificando estado del cierre:', error);
       setEstadoCierre(prev => ({

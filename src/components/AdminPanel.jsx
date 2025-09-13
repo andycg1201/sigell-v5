@@ -135,7 +135,7 @@ const AdminPanel = ({ isOpen, onClose }) => {
   const handleSaveNovedades = async () => {
     setLoading(true);
     try {
-      await updateNovedadesConfig(tempNovedades);
+      await updateNovedadesConfig({ ...novedadesConfig, novedades: tempNovedades });
       setEditingNovedades(false);
       alert('Novedades actualizadas correctamente');
     } catch (error) {
@@ -149,7 +149,7 @@ const AdminPanel = ({ isOpen, onClose }) => {
   const handleSaveMotivos = async () => {
     setLoading(true);
     try {
-      await updateMotivosInhabilitacion(tempMotivos);
+      await updateMotivosInhabilitacion({ ...motivosConfig, motivos: tempMotivos });
       setEditingMotivos(false);
       alert('Motivos actualizados correctamente');
     } catch (error) {
@@ -381,11 +381,11 @@ const AdminPanel = ({ isOpen, onClose }) => {
                   <div className="admin-card">
                     <h4>📋 Configurar Novedades</h4>
                     <div className="card-content">
-                      <p>Novedades configuradas: {novedadesConfig?.length || 0}</p>
+                      <p>Novedades configuradas: {novedadesConfig?.novedades?.length || 0}</p>
                       <button 
                         onClick={() => {
                           setEditingNovedades(true);
-                          setTempNovedades([...novedadesConfig]);
+                          setTempNovedades([...novedadesConfig.novedades]);
                         }}
                         className="btn btn-primary"
                       >
@@ -397,13 +397,13 @@ const AdminPanel = ({ isOpen, onClose }) => {
                   <div className="admin-card">
                     <h4>🚫 Configurar Motivos</h4>
                     <div className="card-content">
-                      <p>Motivos configurados: {motivosConfig?.length || 0}</p>
+                      <p>Motivos configurados: {motivosConfig?.motivos?.length || 0}</p>
                       <button 
                         onClick={async () => {
                           const motivos = await getMotivosInhabilitacion();
                           setMotivosConfig(motivos);
                           setEditingMotivos(true);
-                          setTempMotivos([...motivos]);
+                          setTempMotivos([...motivos.motivos]);
                         }}
                         className="btn btn-primary"
                       >
@@ -475,6 +475,250 @@ const AdminPanel = ({ isOpen, onClose }) => {
         isOpen={showLimpiezaModal}
         onClose={() => setShowLimpiezaModal(false)}
       />
+
+      {/* Modal de edición de bases */}
+      {editingBases && (
+        <div className="modal-overlay" onClick={() => setEditingBases(false)}>
+          <div className="config-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>🏢 Configurar Bases</h3>
+              <button onClick={() => setEditingBases(false)}>✕</button>
+            </div>
+            <div className="modal-content">
+              <div className="config-list">
+                {tempBases.map((base, index) => (
+                  <div key={base.id} className="config-item">
+                    <input
+                      type="text"
+                      value={base.nombre}
+                      onChange={(e) => {
+                        const newBases = [...tempBases];
+                        newBases[index].nombre = e.target.value;
+                        setTempBases(newBases);
+                      }}
+                      className="config-input"
+                      placeholder="Nombre de la base"
+                    />
+                    <input
+                      type="text"
+                      value={base.direccion}
+                      onChange={(e) => {
+                        const newBases = [...tempBases];
+                        newBases[index].direccion = e.target.value;
+                        setTempBases(newBases);
+                      }}
+                      className="config-input"
+                      placeholder="Dirección"
+                    />
+                    <button
+                      onClick={() => {
+                        if (tempBases.length <= 1) {
+                          alert('Debe haber al menos una base');
+                          return;
+                        }
+                        const newBases = tempBases.filter((_, i) => i !== index);
+                        setTempBases(newBases);
+                      }}
+                      className="btn-delete"
+                      title="Eliminar base"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Botón para agregar nueva base */}
+              <div className="add-item-section">
+                <button
+                  onClick={() => {
+                    if (tempBases.length >= 10) {
+                      alert('Máximo 10 bases permitidas');
+                      return;
+                    }
+                    const newId = Math.max(...tempBases.map(b => b.id), 0) + 1;
+                    const newBase = {
+                      id: newId,
+                      nombre: `BASE ${newId}`,
+                      direccion: ''
+                    };
+                    setTempBases([...tempBases, newBase]);
+                  }}
+                  className="btn-add"
+                  title="Agregar nueva base"
+                >
+                  ➕ Agregar Base
+                </button>
+              </div>
+              <div className="modal-actions">
+                <button onClick={() => setEditingBases(false)} className="btn btn-secondary">
+                  Cancelar
+                </button>
+                <button onClick={handleSaveBases} className="btn btn-primary">
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de edición de novedades */}
+      {editingNovedades && (
+        <div className="modal-overlay" onClick={() => setEditingNovedades(false)}>
+          <div className="config-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>📋 Configurar Novedades</h3>
+              <button onClick={() => setEditingNovedades(false)}>✕</button>
+            </div>
+            <div className="modal-content">
+              <div className="config-list">
+                {tempNovedades.map((novedad, index) => (
+                  <div key={index} className="config-item">
+                    <input
+                      type="text"
+                      value={novedad.codigo}
+                      onChange={(e) => {
+                        const newNovedades = [...tempNovedades];
+                        newNovedades[index].codigo = e.target.value;
+                        setTempNovedades(newNovedades);
+                      }}
+                      className="config-input"
+                      placeholder="Código"
+                    />
+                    <input
+                      type="text"
+                      value={novedad.descripcion}
+                      onChange={(e) => {
+                        const newNovedades = [...tempNovedades];
+                        newNovedades[index].descripcion = e.target.value;
+                        setTempNovedades(newNovedades);
+                      }}
+                      className="config-input"
+                      placeholder="Descripción"
+                    />
+                    <button
+                      onClick={() => {
+                        const newNovedades = tempNovedades.filter((_, i) => i !== index);
+                        setTempNovedades(newNovedades);
+                      }}
+                      className="btn-delete"
+                      title="Eliminar novedad"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Botón para agregar nueva novedad */}
+              <div className="add-item-section">
+                <button
+                  onClick={() => {
+                    const newNovedad = {
+                      codigo: '',
+                      descripcion: ''
+                    };
+                    setTempNovedades([...tempNovedades, newNovedad]);
+                  }}
+                  className="btn-add"
+                  title="Agregar nueva novedad"
+                >
+                  ➕ Agregar Novedad
+                </button>
+              </div>
+              <div className="modal-actions">
+                <button onClick={() => setEditingNovedades(false)} className="btn btn-secondary">
+                  Cancelar
+                </button>
+                <button onClick={handleSaveNovedades} className="btn btn-primary">
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de edición de motivos */}
+      {editingMotivos && (
+        <div className="modal-overlay" onClick={() => setEditingMotivos(false)}>
+          <div className="config-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>🚫 Configurar Motivos</h3>
+              <button onClick={() => setEditingMotivos(false)}>✕</button>
+            </div>
+            <div className="modal-content">
+              <div className="config-list">
+                {tempMotivos.map((motivo, index) => (
+                  <div key={index} className="config-item">
+                    <input
+                      type="text"
+                      value={motivo.codigo}
+                      onChange={(e) => {
+                        const newMotivos = [...tempMotivos];
+                        newMotivos[index].codigo = e.target.value;
+                        setTempMotivos(newMotivos);
+                      }}
+                      className="config-input"
+                      placeholder="Código"
+                    />
+                    <input
+                      type="text"
+                      value={motivo.concepto || motivo.descripcion}
+                      onChange={(e) => {
+                        const newMotivos = [...tempMotivos];
+                        newMotivos[index].concepto = e.target.value;
+                        setTempMotivos(newMotivos);
+                      }}
+                      className="config-input"
+                      placeholder="Concepto/Descripción"
+                    />
+                    <button
+                      onClick={() => {
+                        const newMotivos = tempMotivos.filter((_, i) => i !== index);
+                        setTempMotivos(newMotivos);
+                      }}
+                      className="btn-delete"
+                      title="Eliminar motivo"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Botón para agregar nuevo motivo */}
+              <div className="add-item-section">
+                <button
+                  onClick={() => {
+                    const newMotivo = {
+                      codigo: '',
+                      concepto: '',
+                      color: '#6c757d',
+                      icono: '⚠️',
+                      activo: true
+                    };
+                    setTempMotivos([...tempMotivos, newMotivo]);
+                  }}
+                  className="btn-add"
+                  title="Agregar nuevo motivo"
+                >
+                  ➕ Agregar Motivo
+                </button>
+              </div>
+              <div className="modal-actions">
+                <button onClick={() => setEditingMotivos(false)} className="btn btn-secondary">
+                  Cancelar
+                </button>
+                <button onClick={handleSaveMotivos} className="btn btn-primary">
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .admin-panel-overlay {
@@ -695,6 +939,135 @@ const AdminPanel = ({ isOpen, onClose }) => {
 
         .btn-success:hover:not(:disabled) {
           background: #218838;
+        }
+
+        /* Estilos para modales de configuración */
+        .config-modal {
+          background: white;
+          border-radius: 8px;
+          width: auto;
+          min-width: 500px;
+          max-width: 600px;
+          max-height: 80vh;
+          overflow-y: auto;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px;
+          border-bottom: 1px solid #dee2e6;
+          background: #f8f9fa;
+          border-radius: 8px 8px 0 0;
+        }
+
+        .modal-header h3 {
+          margin: 0;
+          color: #495057;
+        }
+
+        .modal-header button {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          cursor: pointer;
+          color: #6c757d;
+          padding: 5px;
+          border-radius: 4px;
+          transition: all 0.2s;
+        }
+
+        .modal-header button:hover {
+          background: #e9ecef;
+          color: #495057;
+        }
+
+        .modal-content {
+          padding: 20px 25px;
+        }
+
+        .config-list {
+          margin-bottom: 20px;
+        }
+
+        .config-item {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 10px;
+          align-items: center;
+          width: 100%;
+        }
+
+        .config-input {
+          flex: 1;
+          padding: 8px 12px;
+          border: 1px solid #ced4da;
+          border-radius: 4px;
+          font-size: 14px;
+        }
+
+        .config-input:focus {
+          outline: none;
+          border-color: #80bdff;
+          box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 10px;
+          justify-content: flex-end;
+          padding-top: 20px;
+          border-top: 1px solid #dee2e6;
+        }
+
+        .btn-delete {
+          background: #dc3545;
+          border: none;
+          color: white;
+          padding: 8px 12px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.2s;
+          min-width: 40px;
+          height: 38px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .btn-delete:hover {
+          background: #c82333;
+          transform: scale(1.05);
+        }
+
+        .add-item-section {
+          margin-bottom: 20px;
+          padding-top: 15px;
+          border-top: 1px solid #dee2e6;
+        }
+
+        .btn-add {
+          background: #28a745;
+          border: none;
+          color: white;
+          padding: 10px 20px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .btn-add:hover {
+          background: #218838;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
       `}</style>
     </div>

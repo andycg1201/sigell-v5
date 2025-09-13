@@ -167,7 +167,8 @@ const AppContent = () => {
         horaAsignacion: currentTime,
         qsm: false,
         confirmado: false,
-        reasignaciones: []
+        reasignaciones: [],
+        esSalidaBase: true // Marcar como salida de base
       };
 
       // Crear pedido en Firebase
@@ -267,7 +268,17 @@ const AppContent = () => {
       <Header user={user} />
       <main className="main-content">
         <TaxiGrid onAssignUnit={handleAssignUnit} orders={orders} onCreateBaseOrder={handleCreateBaseOrder} onShowToast={showToast} />
-        <OrdersTable orders={orders} onAddOrder={handleAddOrder} onDeleteOrder={handleDeleteOrder} onUpdateOrder={handleUpdateOrder} telefonoRef={telefonoRef} />
+        <OrdersTable 
+          orders={orders} 
+          onAddOrder={handleAddOrder} 
+          onDeleteOrder={handleDeleteOrder} 
+          onUpdateOrder={handleUpdateOrder} 
+          telefonoRef={telefonoRef}
+          onMostrarSalidasBase={() => {
+            // Esta función se ejecutará cuando se seleccione una base
+            console.log('Mostrando salidas de base temporalmente');
+          }}
+        />
       </main>
       
       {/* Toast Notification */}

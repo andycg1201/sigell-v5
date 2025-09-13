@@ -2174,12 +2174,16 @@
 
 .domicilio-field {
   text-align: left;
+  font-size: 18px !important;
+  font-weight: 500 !important;
 }
 
 .observaciones-field {
   text-align: left;
   font-style: italic;
   color: #666;
+  font-size: 18px !important;
+  font-weight: 500 !important;
 }
 
 .qse-field {

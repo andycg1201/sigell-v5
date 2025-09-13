@@ -10,7 +10,7 @@ import CalificacionModal from './CalificacionModal';
 import ModemModal from './ModemModal';
 import { focusTelefonoFieldDelayed } from '../utils/focusUtils';
 
-const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, telefonoRef }) => {
+const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, telefonoRef, onMostrarSalidasBase }) => {
   const { selectedOrderId, selectOrder } = useSelection();
   const [newOrder, setNewOrder] = useState({
     cliente: '',
@@ -32,15 +32,26 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
   // Estado para manejar llamadas del modem
   const [incomingCall, setIncomingCall] = useState(null);
   const [showModemModal, setShowModemModal] = useState(false);
+  const [mostrarSalidasBase, setMostrarSalidasBase] = useState(false);
+  const [timerSalidasBase, setTimerSalidasBase] = useState(null);
   
   
-  // Mostrar todos los pedidos (pendientes y asignados)
-  const allOrders = orders;
+  // Filtrar pedidos según visibilidad de salidas de base
+  const allOrders = orders.filter(order => {
+    // Debug: Verificar si el pedido es salida de base
+    if (order.esSalidaBase) {
+      console.log('Pedido salida de base encontrado:', order.cliente, 'mostrarSalidasBase:', mostrarSalidasBase);
+      return mostrarSalidasBase;
+    }
+    // Los pedidos normales siempre se muestran
+    return true;
+  });
   
   // Debug: Log de pedidos para detectar duplicados
   useEffect(() => {
-    console.log('OrdersTable: Pedidos actuales:', allOrders.map(o => ({ id: o.id, cliente: o.cliente, hora: o.hora })));
-  }, [allOrders]);
+    console.log('OrdersTable: Pedidos actuales:', allOrders.map(o => ({ id: o.id, cliente: o.cliente, hora: o.hora, esSalidaBase: o.esSalidaBase })));
+    console.log('OrdersTable: Estado mostrarSalidasBase:', mostrarSalidasBase);
+  }, [allOrders, mostrarSalidasBase]);
 
   // Solicitar permisos de notificación al cargar el componente
   useEffect(() => {
@@ -56,11 +67,20 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
     };
 
     window.addEventListener('toggleModemTest', handleToggleModemModal);
-    
+
     return () => {
       window.removeEventListener('toggleModemTest', handleToggleModemModal);
     };
   }, []);
+
+  // Limpiar timer de salidas de base al desmontar
+  useEffect(() => {
+    return () => {
+      if (timerSalidasBase) {
+        clearTimeout(timerSalidasBase);
+      }
+    };
+  }, [timerSalidasBase]);
 
   const handleRowClick = (orderId) => {
     selectOrder(orderId);
@@ -118,6 +138,60 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
         body: `Número: ${callInfo.phoneNumber}`,
         icon: '/favicon.ico'
       });
+    }
+  };
+
+  // Función para toggle de salidas de base
+  const toggleSalidasBase = () => {
+    setMostrarSalidasBase(prev => {
+      const nuevoEstado = !prev;
+      
+      // Si se está mostrando (nuevo estado), crear timer para ocultar después de 2 minutos
+      if (nuevoEstado) {
+        // Limpiar timer anterior si existe
+        if (timerSalidasBase) {
+          clearTimeout(timerSalidasBase);
+        }
+        
+        // Crear nuevo timer para ocultar después de 2 minutos
+        const timer = setTimeout(() => {
+          setMostrarSalidasBase(false);
+          setTimerSalidasBase(null);
+        }, 20000); // 20 segundos
+        
+        setTimerSalidasBase(timer);
+      } else {
+        // Si se está ocultando, limpiar timer
+        if (timerSalidasBase) {
+          clearTimeout(timerSalidasBase);
+          setTimerSalidasBase(null);
+        }
+      }
+      
+      return nuevoEstado;
+    });
+  };
+
+  // Función para mostrar salidas de base (cuando se selecciona una base)
+  const mostrarSalidasBaseTemporales = () => {
+    setMostrarSalidasBase(true);
+    
+    // Limpiar timer anterior si existe
+    if (timerSalidasBase) {
+      clearTimeout(timerSalidasBase);
+    }
+    
+    // Crear nuevo timer para ocultar después de 2 minutos
+    const timer = setTimeout(() => {
+      setMostrarSalidasBase(false);
+      setTimerSalidasBase(null);
+    }, 20000); // 20 segundos
+    
+    setTimerSalidasBase(timer);
+    
+    // Llamar a la función prop si existe
+    if (onMostrarSalidasBase) {
+      onMostrarSalidasBase();
     }
   };
 
@@ -492,23 +566,42 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
                 </div>
               </td>
               <td className="confirm-field">
-                <button
-                  className="add-order-button"
-                  onClick={handleAddNewOrder}
-                  title="Agregar pedido"
-                  tabIndex={-1}
-                  style={{
-                    background: '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '12px'
-                  }}
-                >
-                  +
-                </button>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    className="add-order-button"
+                    onClick={handleAddNewOrder}
+                    title="Agregar pedido"
+                    tabIndex={-1}
+                    style={{
+                      background: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    +
+                  </button>
+                  <button
+                    onClick={toggleSalidasBase}
+                    title={mostrarSalidasBase ? "Ocultar salidas de base" : "Mostrar salidas de base"}
+                    tabIndex={-1}
+                    style={{
+                      background: mostrarSalidasBase ? '#dc3545' : '#6c757d',
+                      color: 'white',
+                      border: 'none',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '10px',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {mostrarSalidasBase ? '🙈 Bases' : '👁️ Bases'}
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
