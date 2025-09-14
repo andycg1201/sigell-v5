@@ -127,11 +127,25 @@ export const CierreProvider = ({ children }) => {
   // Verificar cierre automático optimizado
   const verificarCierreAutomatico = useCallback(async () => {
     try {
+      // Verificar que estamos realmente en la ventana de medianoche
+      const ahora = new Date();
+      const hora = ahora.getHours();
+      const minuto = ahora.getMinutes();
+      
+      if (hora !== 0 || minuto > 5) {
+        console.log(`No estamos en ventana de medianoche (${hora}:${minuto}), saltando cierre automático`);
+        return null;
+      }
+      
       // Usar cache si está disponible, sino consultar Firebase
-      const estado = await verificarEstadoCierre();
+      const estado = await verificarEstadoCierre(true); // Forzar consulta para cierre automático
       
       if (estado.necesitaCierre) {
-        console.log('Ejecutando cierre automático...');
+        console.log('=== EJECUTANDO CIERRE AUTOMÁTICO ===');
+        console.log(`Hora actual: ${hora}:${minuto}`);
+        console.log(`Último cierre: ${estado.ultimoCierre}`);
+        console.log(`Fecha hoy: ${estado.fechaHoy}`);
+        
         // Usar la fecha del último cierre para archivar los pedidos
         const resultado = await ejecutarCierreDelDia(estado.ultimoCierre);
         
@@ -149,8 +163,10 @@ export const CierreProvider = ({ children }) => {
           procesando: false
         }));
         
-        console.log('Cierre automático completado:', resultado);
+        console.log('=== CIERRE AUTOMÁTICO COMPLETADO ===', resultado);
         return resultado;
+      } else {
+        console.log('No se necesita cierre automático en este momento');
       }
       
       return null;
@@ -208,6 +224,8 @@ export const CierreProvider = ({ children }) => {
 
   // Timer optimizado para verificar medianoche
   useEffect(() => {
+    let cierreEjecutado = false; // Flag para evitar múltiples ejecuciones
+    
     const checkMidnight = () => {
       const now = new Date();
       const currentHour = now.getHours();
@@ -219,12 +237,20 @@ export const CierreProvider = ({ children }) => {
         console.log(`Timer funcionando - Hora actual: ${currentHour}:${currentMinute}`);
       }
       
-      // Verificar si necesita cierre automático (si está entre 00:00 y 00:05)
-      if (currentHour === 0 && currentMinute <= 5) {
+      // Verificar si necesita cierre automático (solo entre 00:00 y 00:02 para evitar múltiples ejecuciones)
+      if (currentHour === 0 && currentMinute <= 2 && !cierreEjecutado) {
         console.log('Verificando si necesita cierre automático...');
+        cierreEjecutado = true; // Marcar como ejecutado para evitar repeticiones
+        
         verificarCierreAutomatico().catch(error => {
           console.error('Error en verificación de cierre automático:', error);
+          cierreEjecutado = false; // Resetear flag en caso de error
         });
+      }
+      
+      // Resetear flag cuando salgamos de la ventana de medianoche
+      if (currentHour !== 0 || currentMinute > 5) {
+        cierreEjecutado = false;
       }
     };
 
@@ -233,7 +259,7 @@ export const CierreProvider = ({ children }) => {
     
     // Verificar inmediatamente al cargar si estamos en la ventana de medianoche
     const now = new Date();
-    if (now.getHours() === 0 && now.getMinutes() <= 5) {
+    if (now.getHours() === 0 && now.getMinutes() <= 2) {
       console.log('Sistema iniciado en ventana de medianoche, verificando cierre...');
       verificarCierreAutomatico().catch(error => {
         console.error('Error en verificación inicial de cierre:', error);
@@ -272,6 +298,40 @@ export const CierreProvider = ({ children }) => {
       throw error;
     }
   }, []);
+
+  // Función de debug específica para cierre automático
+  const debugCierreAutomatico = useCallback(async () => {
+    try {
+      const ahora = new Date();
+      const hora = ahora.getHours();
+      const minuto = ahora.getMinutes();
+      const fechaHoy = ahora.toISOString().split('T')[0];
+      
+      console.log('=== DEBUG CIERRE AUTOMÁTICO ===');
+      console.log(`Hora actual: ${hora}:${minuto}`);
+      console.log(`Fecha hoy: ${fechaHoy}`);
+      console.log(`En ventana de medianoche: ${hora === 0 && minuto <= 5}`);
+      
+      const estado = await verificarEstadoCierre(true);
+      console.log('Estado del cierre:', estado);
+      console.log('Cache local:', cacheLocal);
+      console.log('Estado actual:', estadoCierre);
+      console.log('=== FIN DEBUG CIERRE AUTOMÁTICO ===');
+      
+      return {
+        hora,
+        minuto,
+        fechaHoy,
+        enVentanaMedianoche: hora === 0 && minuto <= 5,
+        estado,
+        cacheLocal,
+        estadoCierre
+      };
+    } catch (error) {
+      console.error('Error en debug cierre automático:', error);
+      throw error;
+    }
+  }, [verificarEstadoCierre, cacheLocal, estadoCierre]);
 
   // Función para limpiar pedidos huérfanos
   const limpiarHuerfanos = useCallback(async () => {
@@ -316,6 +376,7 @@ export const CierreProvider = ({ children }) => {
     obtenerFechasArchivadas,
     limpiarCache,
     debugEstado,
+    debugCierreAutomatico,
     limpiarHuerfanos,
     limpiarTodos
   };

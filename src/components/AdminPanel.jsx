@@ -16,7 +16,7 @@ const AdminPanel = ({ isOpen, onClose }) => {
   const { totalTaxis, taxiBloqueados, updateConfig } = useTaxis();
   const { bases, updateConfig: updateBasesConfig } = useBases();
   const { novedadesConfig, updateConfig: updateNovedadesConfig } = useNovedades();
-  const { estadoCierre, ejecutarCierreManual, verificarCierreAutomatico, limpiarCache, debugEstado, limpiarHuerfanos, limpiarTodos } = useCierre();
+  const { estadoCierre, ejecutarCierreManual, verificarCierreAutomatico, limpiarCache, debugEstado, debugCierreAutomatico, limpiarHuerfanos, limpiarTodos } = useCierre();
   
   const [activeTab, setActiveTab] = useState('sistema');
   const [newTotal, setNewTotal] = useState(totalTaxis);
@@ -87,11 +87,23 @@ const AdminPanel = ({ isOpen, onClose }) => {
     }
   };
 
+
   const handleDebugEstado = async () => {
     try {
       await debugEstado();
     } catch (error) {
       console.error('Error en debug:', error);
+    }
+  };
+
+  const handleDebugCierreAutomatico = async () => {
+    try {
+      console.log('Ejecutando debug de cierre automático...');
+      const resultado = await debugCierreAutomatico();
+      alert(`Debug completado. Revisa la consola para más detalles.\nHora: ${resultado.hora}:${resultado.minuto}\nEn ventana medianoche: ${resultado.enVentanaMedianoche}`);
+    } catch (error) {
+      alert('Error en debug de cierre automático');
+      console.error('Error en debug cierre automático:', error);
     }
   };
 
@@ -310,6 +322,19 @@ const AdminPanel = ({ isOpen, onClose }) => {
                         className="btn btn-info"
                       >
                         🔍 Debug
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="admin-card">
+                    <h4>🕛 Debug Cierre Automático</h4>
+                    <div className="card-content">
+                      <p>Verifica el estado del cierre automático</p>
+                      <button 
+                        onClick={handleDebugCierreAutomatico}
+                        className="btn btn-warning"
+                      >
+                        🕛 Debug Cierre
                       </button>
                     </div>
                   </div>

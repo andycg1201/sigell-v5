@@ -6,6 +6,7 @@ import {
   setDoc, 
   getDocs,
   writeBatch,
+  updateDoc,
   serverTimestamp
 } from 'firebase/firestore';
 
@@ -155,63 +156,6 @@ export const resetearContadores = async () => {
   }
 };
 
-// Función para limpiar novedades según configuración
-export const limpiarNovedadesSegunConfig = async () => {
-  try {
-    console.log('Limpiando novedades según configuración');
-    
-    // Obtener configuración de novedades
-    const configRef = doc(db, 'config', 'novedades');
-    const configSnap = await getDoc(configRef);
-    
-    if (!configSnap.exists()) {
-      console.log('No hay configuración de novedades');
-      return;
-    }
-    
-    const config = configSnap.data();
-    const novedadesConfig = config.novedades || [];
-    
-    // Obtener todas las novedades de taxis
-    const novedadesRef = collection(db, 'taxi_novedades');
-    const querySnapshot = await getDocs(novedadesRef);
-    
-    const batch = writeBatch(db);
-    let taxisActualizados = 0;
-    
-    querySnapshot.forEach((doc) => {
-      const taxiData = doc.data();
-      const novedadesActuales = taxiData.novedades || [];
-      
-      // Filtrar novedades que NO se deben heredar
-      const novedadesHeredadas = novedadesActuales.filter(novedad => {
-        const configNovedad = novedadesConfig.find(n => n.codigo === novedad.codigo);
-        return configNovedad && configNovedad.heredarAlCierre !== false;
-      });
-      
-      // Solo actualizar si hay cambios
-      if (novedadesHeredadas.length !== novedadesActuales.length) {
-        batch.update(doc.ref, { 
-          novedades: novedadesHeredadas,
-          ultimaActualizacion: serverTimestamp()
-        });
-        taxisActualizados++;
-      }
-    });
-    
-    if (taxisActualizados > 0) {
-      await batch.commit();
-      console.log(`${taxisActualizados} taxis actualizados con novedades heredadas`);
-    } else {
-      console.log('No hay novedades que limpiar');
-    }
-    
-    return taxisActualizados;
-  } catch (error) {
-    console.error('Error limpiando novedades:', error);
-    throw error;
-  }
-};
 
 // Función principal de cierre del día
 export const ejecutarCierreDelDia = async (fechaCierre) => {
@@ -224,23 +168,19 @@ export const ejecutarCierreDelDia = async (fechaCierre) => {
     // 2. Resetear contadores
     await resetearContadores();
     
-    // 3. Limpiar novedades según configuración
-    const taxisActualizados = await limpiarNovedadesSegunConfig();
-    
-    // 4. Marcar cierre completado con la fecha actual
+    // 3. Marcar cierre completado con la fecha actual
     const hoy = new Date().toISOString().split('T')[0];
     await marcarCierreCompletado(hoy);
     
     console.log(`=== CIERRE COMPLETADO ===`);
     console.log(`- Pedidos archivados: ${pedidosArchivados}`);
-    console.log(`- Taxis con novedades actualizadas: ${taxisActualizados}`);
     console.log(`- Contadores reseteados`);
     console.log(`- Fecha de cierre: ${fechaCierre}`);
     console.log(`- Fecha actual: ${hoy}`);
+    console.log(`- NOTA: Novedades e inhabilitaciones se mantienen hasta que el operador las quite manualmente`);
     
     return {
       pedidosArchivados,
-      taxisActualizados,
       fechaCierre: hoy
     };
   } catch (error) {
@@ -479,9 +419,6 @@ export const forzarCierreDelDia = async () => {
     
     // Resetear contadores
     await resetearContadores();
-    
-    // Limpiar novedades
-    await limpiarNovedadesSegunConfig();
     
     // Marcar cierre completado
     const hoy = new Date().toISOString().split('T')[0];
