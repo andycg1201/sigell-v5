@@ -698,8 +698,8 @@ const OrdersTable = ({ orders = [], onAddOrder, onDeleteOrder, onUpdateOrder, te
                   </td>
                   <td className="confirm-field">
                     <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      {/* Botón de calificación - solo visible si está asignado */}
-                      {order.unidad && (
+                      {/* Botón de calificación - solo visible si está asignado Y NO es salida de base */}
+                      {order.unidad && !order.esSalidaBase && (
                         <button
                           className="calificar-button"
                           onClick={(e) => {

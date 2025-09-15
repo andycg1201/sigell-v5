@@ -162,14 +162,14 @@ export const ejecutarCierreDelDia = async (fechaCierre) => {
   try {
     console.log(`=== INICIANDO CIERRE DEL DÍA: ${fechaCierre} ===`);
     
-    // 1. Archivar pedidos del día
-    const pedidosArchivados = await archivarPedidosDelDia(fechaCierre);
+    // 1. Archivar pedidos del día (usar la fecha actual, no la fecha pasada)
+    const hoy = new Date().toISOString().split('T')[0];
+    const pedidosArchivados = await archivarPedidosDelDia(hoy);
     
     // 2. Resetear contadores
     await resetearContadores();
     
     // 3. Marcar cierre completado con la fecha actual
-    const hoy = new Date().toISOString().split('T')[0];
     await marcarCierreCompletado(hoy);
     
     console.log(`=== CIERRE COMPLETADO ===`);
@@ -177,6 +177,7 @@ export const ejecutarCierreDelDia = async (fechaCierre) => {
     console.log(`- Contadores reseteados`);
     console.log(`- Fecha de cierre: ${fechaCierre}`);
     console.log(`- Fecha actual: ${hoy}`);
+    console.log(`- Pedidos archivados con fecha: ${hoy}`);
     console.log(`- NOTA: Novedades e inhabilitaciones se mantienen hasta que el operador las quite manualmente`);
     
     return {
@@ -400,21 +401,20 @@ export const forzarCierreDelDia = async () => {
     });
     
     if (pedidosDelDia.length > 0) {
-      // Usar fecha de ayer para el archivo
-      const ayer = new Date();
-      ayer.setDate(ayer.getDate() - 1);
-      const fechaAyer = ayer.toISOString().split('T')[0];
+      // Usar fecha de HOY para el archivo (corregido)
+      const hoy = new Date().toISOString().split('T')[0];
       
-      const archivoRef = doc(db, 'pedidos_archivados', fechaAyer);
+      const archivoRef = doc(db, 'pedidos_archivados', hoy);
       batch.set(archivoRef, {
-        fecha: fechaAyer,
+        fecha: hoy,
         pedidos: pedidosDelDia,
         totalPedidos: pedidosDelDia.length,
-        fechaArchivado: serverTimestamp()
+        fechaArchivado: serverTimestamp(),
+        esCierreForzado: true
       });
       
       await batch.commit();
-      console.log(`✅ ${pedidosDelDia.length} pedidos archivados forzadamente en ${fechaAyer}`);
+      console.log(`✅ ${pedidosDelDia.length} pedidos archivados forzadamente en ${hoy}`);
     }
     
     // Resetear contadores
@@ -426,7 +426,7 @@ export const forzarCierreDelDia = async () => {
     
     return {
       pedidosArchivados: pedidosDelDia.length,
-      fechaArchivo: ayer.toISOString().split('T')[0]
+      fechaArchivo: hoy
     };
   } catch (error) {
     console.error('Error forzando cierre:', error);
@@ -466,15 +466,13 @@ export const limpiarTodosLosPedidos = async () => {
       batch.delete(doc.ref);
     });
     
-    // Usar fecha de ayer para el archivo
-    const ayer = new Date();
-    ayer.setDate(ayer.getDate() - 1);
-    const fechaAyer = ayer.toISOString().split('T')[0];
+    // Usar fecha de HOY para el archivo (corregido)
+    const hoy = new Date().toISOString().split('T')[0];
     
-    console.log(`Archivando en fecha: ${fechaAyer}`);
+    console.log(`Archivando en fecha: ${hoy}`);
     
-    // Verificar si ya existe un archivo para ayer
-    const archivoRef = doc(db, 'pedidos_archivados', fechaAyer);
+    // Verificar si ya existe un archivo para hoy
+    const archivoRef = doc(db, 'pedidos_archivados', hoy);
     const archivoSnap = await getDoc(archivoRef);
     
     if (archivoSnap.exists()) {
@@ -490,18 +488,18 @@ export const limpiarTodosLosPedidos = async () => {
         pedidosLimpiezaEmergencia: pedidosParaLimpiar.length
       });
       
-      console.log(`✅ ${pedidosParaLimpiar.length} pedidos agregados al archivo existente de ${fechaAyer}`);
+      console.log(`✅ ${pedidosParaLimpiar.length} pedidos agregados al archivo existente de ${hoy}`);
     } else {
       // Si no existe, crear nuevo archivo
       batch.set(archivoRef, {
-        fecha: fechaAyer,
+        fecha: hoy,
         pedidos: pedidosParaLimpiar,
         totalPedidos: pedidosParaLimpiar.length,
         fechaArchivado: serverTimestamp(),
         limpiezaEmergencia: true
       });
       
-      console.log(`✅ ${pedidosParaLimpiar.length} pedidos archivados en nuevo archivo de ${fechaAyer}`);
+      console.log(`✅ ${pedidosParaLimpiar.length} pedidos archivados en nuevo archivo de ${hoy}`);
     }
     
     console.log('Ejecutando batch de operaciones...');
@@ -510,7 +508,7 @@ export const limpiarTodosLosPedidos = async () => {
     
     return {
       pedidosLimpiados: pedidosParaLimpiar.length,
-      fechaArchivo: fechaAyer
+      fechaArchivo: hoy
     };
   } catch (error) {
     console.error('❌ Error en limpieza de emergencia:', error);
