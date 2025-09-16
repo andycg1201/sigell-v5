@@ -127,17 +127,19 @@ export const CierreProvider = ({ children }) => {
   // Verificar cierre automático optimizado
   const verificarCierreAutomatico = useCallback(async () => {
     try {
-      // Verificar que estamos realmente en la ventana de medianoche (más estricto)
+      // Verificar que estamos realmente en la ventana de medianoche (MÁS ESTRICTO)
       const ahora = new Date();
       const hora = ahora.getHours();
       const minuto = ahora.getMinutes();
       const segundo = ahora.getSeconds();
       
-      // Solo ejecutar entre 00:00:00 y 00:00:59 (ventana de 1 minuto exacta)
-      if (hora !== 0 || minuto !== 0 || segundo > 59) {
-        console.log(`No estamos en ventana de medianoche exacta (${hora}:${minuto}:${segundo}), saltando cierre automático`);
+      // Solo ejecutar entre 00:00:00 y 00:00:30 (ventana de 30 segundos exacta)
+      if (hora !== 0 || minuto !== 0 || segundo > 30) {
+        console.log(`❌ NO EJECUTAR CIERRE: No estamos en ventana de medianoche exacta (${hora}:${minuto}:${segundo}), saltando cierre automático`);
         return null;
       }
+      
+      console.log(`✅ VENTANA DE MEDIANOCHE DETECTADA: ${hora}:${minuto}:${segundo} - Procediendo con verificación de cierre`);
       
       // Usar cache si está disponible, sino consultar Firebase
       const estado = await verificarEstadoCierre(true); // Forzar consulta para cierre automático
@@ -239,9 +241,17 @@ export const CierreProvider = ({ children }) => {
         console.log(`Timer funcionando - Hora actual: ${currentHour}:${currentMinute}`);
       }
       
-      // Verificar si necesita cierre automático (solo en 00:00:00-00:00:59 para evitar múltiples ejecuciones)
-      if (currentHour === 0 && currentMinute === 0 && currentSecond <= 59 && !cierreEjecutado) {
-        console.log('Verificando si necesita cierre automático...');
+      // ALERTA: Log si estamos cerca de medianoche para detectar problemas
+      if (currentHour === 23 && currentMinute >= 58) {
+        console.log(`⚠️ ACERCÁNDOSE A MEDIANOCHE: ${currentHour}:${currentMinute}:${currentSecond}`);
+      }
+      if (currentHour === 0 && currentMinute <= 2) {
+        console.log(`⚠️ DESPUÉS DE MEDIANOCHE: ${currentHour}:${currentMinute}:${currentSecond}`);
+      }
+      
+      // Verificar si necesita cierre automático (solo en 00:00:00-00:00:30 para evitar múltiples ejecuciones)
+      if (currentHour === 0 && currentMinute === 0 && currentSecond <= 30 && !cierreEjecutado) {
+        console.log(`🔍 VERIFICANDO CIERRE AUTOMÁTICO: ${currentHour}:${currentMinute}:${currentSecond}`);
         cierreEjecutado = true; // Marcar como ejecutado para evitar repeticiones
         
         verificarCierreAutomatico().catch(error => {
@@ -307,12 +317,14 @@ export const CierreProvider = ({ children }) => {
       const ahora = new Date();
       const hora = ahora.getHours();
       const minuto = ahora.getMinutes();
+      const segundo = ahora.getSeconds();
       const fechaHoy = ahora.toISOString().split('T')[0];
       
       console.log('=== DEBUG CIERRE AUTOMÁTICO ===');
-      console.log(`Hora actual: ${hora}:${minuto}`);
+      console.log(`Hora actual: ${hora}:${minuto}:${segundo}`);
       console.log(`Fecha hoy: ${fechaHoy}`);
-      console.log(`En ventana de medianoche: ${hora === 0 && minuto <= 5}`);
+      console.log(`En ventana de medianoche: ${hora === 0 && minuto === 0 && segundo <= 30}`);
+      console.log(`Ventana segura para forzar: ${(hora === 0 && minuto === 0 && segundo <= 30) || (hora === 23 && minuto === 59 && segundo >= 30)}`);
       
       const estado = await verificarEstadoCierre(true);
       console.log('Estado del cierre:', estado);
@@ -323,8 +335,10 @@ export const CierreProvider = ({ children }) => {
       return {
         hora,
         minuto,
+        segundo,
         fechaHoy,
-        enVentanaMedianoche: hora === 0 && minuto <= 5,
+        enVentanaMedianoche: hora === 0 && minuto === 0 && segundo <= 30,
+        enVentanaSegura: (hora === 0 && minuto === 0 && segundo <= 30) || (hora === 23 && minuto === 59 && segundo >= 30),
         estado,
         cacheLocal,
         estadoCierre

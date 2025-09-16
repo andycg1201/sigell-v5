@@ -5,6 +5,8 @@ import {
   subscribeToTaxiNovedades,
   addTaxiNovedad,
   removeTaxiNovedad,
+  removeTaxiNovedadById,
+  editTaxiNovedad,
   getNovedadesConfig
 } from '../firebase/novedades';
 
@@ -75,11 +77,11 @@ export const NovedadesProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
-  // Función para agregar una novedad a un taxi - OPTIMIZADA
-  const addNovedad = useCallback(async (taxiId, codigo, descripcion) => {
-    console.log('NovedadesContext - addNovedad:', { taxiId, codigo, descripcion });
+  // Función para agregar una novedad a un taxi con campos especiales - OPTIMIZADA
+  const addNovedad = useCallback(async (taxiId, codigo, descripcion, camposEspeciales = {}) => {
+    console.log('NovedadesContext - addNovedad:', { taxiId, codigo, descripcion, camposEspeciales });
     try {
-      await addTaxiNovedad(taxiId, codigo, descripcion);
+      await addTaxiNovedad(taxiId, codigo, descripcion, camposEspeciales);
       console.log('NovedadesContext - novedad agregada exitosamente');
     } catch (error) {
       console.error('Error agregando novedad:', error);
@@ -118,6 +120,30 @@ export const NovedadesProvider = ({ children }) => {
     return getTaxiNovedadesCount(taxiId) > 0;
   }, [getTaxiNovedadesCount]);
 
+  // Función para remover una novedad específica por ID - OPTIMIZADA
+  const removeNovedadById = useCallback(async (taxiId, novedadId) => {
+    console.log('NovedadesContext - removeNovedadById:', { taxiId, novedadId });
+    try {
+      await removeTaxiNovedadById(taxiId, novedadId);
+      console.log('NovedadesContext - novedad removida exitosamente');
+    } catch (error) {
+      console.error('Error removiendo novedad por ID:', error);
+      throw error;
+    }
+  }, []);
+
+  // Función para editar una novedad específica - OPTIMIZADA
+  const editNovedad = useCallback(async (taxiId, novedadId, camposActualizados) => {
+    console.log('NovedadesContext - editNovedad:', { taxiId, novedadId, camposActualizados });
+    try {
+      await editTaxiNovedad(taxiId, novedadId, camposActualizados);
+      console.log('NovedadesContext - novedad editada exitosamente');
+    } catch (error) {
+      console.error('Error editando novedad:', error);
+      throw error;
+    }
+  }, []);
+
   // Optimizar el valor del contexto para evitar re-renderizados innecesarios
   const value = useMemo(() => ({
     novedadesConfig,
@@ -126,6 +152,8 @@ export const NovedadesProvider = ({ children }) => {
     subscribeToTaxi,
     addNovedad,
     removeNovedad,
+    removeNovedadById,
+    editNovedad,
     getTaxiNovedadesActivas,
     getTaxiNovedadesCount,
     hasTaxiNovedades
@@ -136,6 +164,8 @@ export const NovedadesProvider = ({ children }) => {
     subscribeToTaxi,
     addNovedad,
     removeNovedad,
+    removeNovedadById,
+    editNovedad,
     getTaxiNovedadesActivas,
     getTaxiNovedadesCount,
     hasTaxiNovedades

@@ -118,6 +118,21 @@ export const getTaxiNovedades = async (taxiId) => {
   }
 };
 
+// Función para obtener solo las novedades activas de un taxi (para mostrar en botones)
+export const getTaxiNovedadesActivas = async (taxiId) => {
+  try {
+    const data = await getTaxiNovedades(taxiId);
+    const novedadesActivas = (data.novedades || []).filter(n => n.activa === true);
+    return {
+      novedades: novedadesActivas,
+      ultimaActualizacion: data.ultimaActualizacion
+    };
+  } catch (error) {
+    console.error('Error obteniendo novedades activas del taxi:', error);
+    throw error;
+  }
+};
+
 // Función para actualizar las novedades de un taxi
 export const updateTaxiNovedades = async (taxiId, novedades) => {
   try {
@@ -147,25 +162,41 @@ export const subscribeToTaxiNovedades = (taxiId, callback) => {
   });
 };
 
-// Función para agregar una novedad a un taxi
-export const addTaxiNovedad = async (taxiId, codigo, descripcion) => {
+// Función para agregar una novedad a un taxi con campos especiales
+export const addTaxiNovedad = async (taxiId, codigo, descripcion, camposEspeciales = {}) => {
   try {
     const currentData = await getTaxiNovedades(taxiId);
     const novedades = currentData.novedades || [];
     
-    // Verificar si la novedad ya existe
-    const novedadExistente = novedades.find(n => n.codigo === codigo);
-    
-    if (novedadExistente) {
-      return; // Ya existe, no hacer nada
+    // Para B54 (Daño Mecánico) y B07 (Carrera fuera de la Ciudad), verificar si ya hay uno activo
+    // B70 (Multa) siempre crea nuevos registros sin activar/desactivar
+    if (codigo === 'B54' || codigo === 'B07') {
+      const novedadActiva = novedades.find(n => n.codigo === codigo && n.activa === true);
+      if (novedadActiva) {
+        // Si ya hay una novedad activa de este tipo, desactivarla
+        const novedadesActualizadas = novedades.map(n => {
+          if (n.id === novedadActiva.id) {
+            return {
+              ...n,
+              activa: false,
+              fechaSalida: new Date()
+            };
+          }
+          return n;
+        });
+        await updateTaxiNovedades(taxiId, novedadesActualizadas);
+        return; // No crear nuevo registro, solo desactivar el existente
+      }
     }
     
-    // Agregar nueva novedad
+    // Crear nueva novedad con campos especiales
     const nuevaNovedad = {
       codigo,
       descripcion,
       activa: true,
-      fechaHora: new Date()
+      fechaHora: new Date(), // Usar new Date() para arrays
+      id: Date.now() + Math.random(), // ID único para cada registro
+      ...camposEspeciales // Incluir campos especiales (observaciones, motivo, responsable, destino)
     };
     
     novedades.push(nuevaNovedad);
@@ -177,7 +208,50 @@ export const addTaxiNovedad = async (taxiId, codigo, descripcion) => {
   }
 };
 
-// Función para remover una novedad de un taxi
+// Función para remover una novedad específica de un taxi por ID
+export const removeTaxiNovedadById = async (taxiId, novedadId) => {
+  try {
+    const currentData = await getTaxiNovedades(taxiId);
+    const novedades = currentData.novedades || [];
+    
+    // Filtrar la novedad específica a remover por ID
+    const novedadesActualizadas = novedades.filter(n => n.id !== novedadId);
+    
+    await updateTaxiNovedades(taxiId, novedadesActualizadas);
+    
+  } catch (error) {
+    console.error('Error removiendo novedad del taxi:', error);
+    throw error;
+  }
+};
+
+// Función para editar una novedad específica de un taxi
+export const editTaxiNovedad = async (taxiId, novedadId, camposActualizados) => {
+  try {
+    const currentData = await getTaxiNovedades(taxiId);
+    const novedades = currentData.novedades || [];
+    
+    // Encontrar y actualizar la novedad específica
+    const novedadesActualizadas = novedades.map(n => {
+      if (n.id === novedadId) {
+        return {
+          ...n,
+          ...camposActualizados,
+          fechaModificacion: new Date()
+        };
+      }
+      return n;
+    });
+    
+    await updateTaxiNovedades(taxiId, novedadesActualizadas);
+    
+  } catch (error) {
+    console.error('Error editando novedad del taxi:', error);
+    throw error;
+  }
+};
+
+// Función para remover una novedad de un taxi (mantener compatibilidad)
 export const removeTaxiNovedad = async (taxiId, codigo) => {
   try {
     const currentData = await getTaxiNovedades(taxiId);

@@ -160,7 +160,20 @@ export const resetearContadores = async () => {
 // Función principal de cierre del día
 export const ejecutarCierreDelDia = async (fechaCierre) => {
   try {
+    // VERIFICACIÓN DE SEGURIDAD: Solo permitir cierre en ventana de medianoche
+    const ahora = new Date();
+    const hora = ahora.getHours();
+    const minuto = ahora.getMinutes();
+    const segundo = ahora.getSeconds();
+    
+    // Solo permitir entre 00:00:00 y 00:00:30
+    if (hora !== 0 || minuto !== 0 || segundo > 30) {
+      console.error(`❌ BLOQUEANDO CIERRE FUERA DE HORA: ${hora}:${minuto}:${segundo} - Solo se permite entre 00:00:00-00:00:30`);
+      throw new Error(`Cierre bloqueado: Solo se permite ejecutar entre 00:00:00 y 00:00:30. Hora actual: ${hora}:${minuto}:${segundo}`);
+    }
+    
     console.log(`=== INICIANDO CIERRE DEL DÍA: ${fechaCierre} ===`);
+    console.log(`✅ VERIFICACIÓN DE HORA PASADA: ${hora}:${minuto}:${segundo}`);
     
     // 1. Archivar pedidos del día (usar la fecha actual, no la fecha pasada)
     const hoy = new Date().toISOString().split('T')[0];
@@ -382,7 +395,23 @@ export const limpiarPedidosHuerfanos = async () => {
 // Función para forzar cierre (solo para testing)
 export const forzarCierreDelDia = async () => {
   try {
+    // VERIFICACIÓN DE SEGURIDAD: Solo permitir forzar cierre en ventana segura
+    const ahora = new Date();
+    const hora = ahora.getHours();
+    const minuto = ahora.getMinutes();
+    const segundo = ahora.getSeconds();
+    
+    // Solo permitir entre 00:00:00 y 00:00:30, o entre 23:59:30 y 23:59:59
+    const enVentanaSegura = (hora === 0 && minuto === 0 && segundo <= 30) || 
+                           (hora === 23 && minuto === 59 && segundo >= 30);
+    
+    if (!enVentanaSegura) {
+      console.error(`❌ BLOQUEANDO CIERRE FORZADO FUERA DE HORA: ${hora}:${minuto}:${segundo} - Solo se permite en ventanas seguras`);
+      throw new Error(`Cierre forzado bloqueado: Solo se permite entre 00:00:00-00:00:30 o 23:59:30-23:59:59. Hora actual: ${hora}:${minuto}:${segundo}`);
+    }
+    
     console.log('=== FORZANDO CIERRE DEL DÍA ===');
+    console.log(`✅ VERIFICACIÓN DE HORA PASADA: ${hora}:${minuto}:${segundo}`);
     
     // Obtener todos los pedidos actuales
     const pedidosRef = collection(db, 'pedidos');
