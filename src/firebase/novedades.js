@@ -18,21 +18,27 @@ export const getNovedadesConfig = async () => {
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
-      return docSnap.data();
+      const config = docSnap.data();
+      console.log('Configuración existente encontrada:', config);
+      console.log('Número de novedades en configuración existente:', config.novedades?.length || 0);
+      return config;
     } else {
       // Crear configuración por defecto
       const defaultConfig = {
         novedades: [
-          { codigo: 'B54', descripcion: 'Daño mecánico', activa: true, heredarAlCierre: true },
-          { codigo: 'B07', descripcion: 'Carrera fuera de ciudad', activa: true, heredarAlCierre: true },
-          { codigo: 'B12', descripcion: 'Sin combustible', activa: true, heredarAlCierre: true },
-          { codigo: 'B23', descripcion: 'Problema eléctrico', activa: true, heredarAlCierre: true }
+          { codigo: 'B23', descripcion: 'Problema eléctrico', activa: true, heredarAlCierre: true },
+          { codigo: 'B45', descripcion: 'Sin combustible', activa: true, heredarAlCierre: true },
+          { codigo: 'B01', descripcion: 'Avería motor', activa: true, heredarAlCierre: true },
+          { codigo: 'B02', descripcion: 'Problema frenos', activa: true, heredarAlCierre: true },
+          { codigo: 'B03', descripcion: 'Neumático pinchado', activa: true, heredarAlCierre: true }
         ],
         mantenerAlCierre: true,
         ultimaActualizacion: serverTimestamp()
       };
       
+      console.log('Creando configuración por defecto de novedades:', defaultConfig);
       await setDoc(docRef, defaultConfig);
+      console.log('Configuración por defecto creada exitosamente');
       return defaultConfig;
     }
   } catch (error) {
@@ -51,6 +57,31 @@ export const updateNovedadesConfig = async (config) => {
     });
   } catch (error) {
     console.error('Error actualizando configuración de novedades:', error);
+    throw error;
+  }
+};
+
+// Función para forzar la actualización de la configuración con novedades por defecto
+export const forzarActualizacionNovedades = async () => {
+  try {
+    const docRef = doc(db, 'config', 'novedades');
+    const configActualizada = {
+      novedades: [
+        { codigo: 'B23', descripcion: 'Problema eléctrico', activa: true, heredarAlCierre: true },
+        { codigo: 'B45', descripcion: 'Sin combustible', activa: true, heredarAlCierre: true },
+        { codigo: 'B01', descripcion: 'Avería motor', activa: true, heredarAlCierre: true },
+        { codigo: 'B02', descripcion: 'Problema frenos', activa: true, heredarAlCierre: true },
+        { codigo: 'B03', descripcion: 'Neumático pinchado', activa: true, heredarAlCierre: true }
+      ],
+      mantenerAlCierre: true,
+      ultimaActualizacion: serverTimestamp()
+    };
+    
+    await setDoc(docRef, configActualizada);
+    console.log('Configuración de novedades actualizada forzadamente');
+    return configActualizada;
+  } catch (error) {
+    console.error('Error forzando actualización de novedades:', error);
     throw error;
   }
 };
@@ -126,8 +157,7 @@ export const addTaxiNovedad = async (taxiId, codigo, descripcion) => {
     const novedadExistente = novedades.find(n => n.codigo === codigo);
     
     if (novedadExistente) {
-      // Si ya existe, no agregar duplicado
-      return;
+      return; // Ya existe, no hacer nada
     }
     
     // Agregar nueva novedad

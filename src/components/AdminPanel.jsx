@@ -5,6 +5,7 @@ import { useNovedades } from '../contexts/NovedadesContext';
 import { useCierre } from '../contexts/CierreContext';
 import { debugEstadoPedidos, forzarCierreDelDia, resetearContadores } from '../firebase/cierre';
 import { getMotivosInhabilitacion, updateMotivosInhabilitacion } from '../firebase/inhabilitaciones';
+import { forzarActualizacionNovedades } from '../firebase/novedades';
 import ArchivosModal from './ArchivosModal';
 import LimpiezaModal from './LimpiezaModal';
 
@@ -51,6 +52,23 @@ const AdminPanel = ({ isOpen, onClose }) => {
       } catch (error) {
         alert('Error ejecutando cierre forzado');
         console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleForzarActualizacionNovedades = async () => {
+    if (confirm('¿Estás seguro de forzar la actualización de novedades? Esto reemplazará la configuración actual.')) {
+      setLoading(true);
+      try {
+        await forzarActualizacionNovedades();
+        alert('Configuración de novedades actualizada correctamente');
+        // Recargar la página para aplicar los cambios
+        window.location.reload();
+      } catch (error) {
+        console.error('Error forzando actualización de novedades:', error);
+        alert('Error actualizando configuración de novedades');
       } finally {
         setLoading(false);
       }
@@ -200,6 +218,7 @@ const AdminPanel = ({ isOpen, onClose }) => {
       setLoading(false);
     }
   };
+
 
   const handleSaveMotivos = async () => {
     setLoading(true);
@@ -487,6 +506,14 @@ const AdminPanel = ({ isOpen, onClose }) => {
                       >
                         📋 Configurar Novedades
                       </button>
+                      <button 
+                        onClick={handleForzarActualizacionNovedades}
+                        disabled={loading}
+                        className="btn btn-warning"
+                        style={{ marginTop: '8px', fontSize: '12px', padding: '6px 12px' }}
+                      >
+                        🔄 Forzar Actualización Novedades
+                      </button>
                     </div>
                   </div>
 
@@ -713,7 +740,9 @@ const AdminPanel = ({ isOpen, onClose }) => {
                   onClick={() => {
                     const newNovedad = {
                       codigo: '',
-                      descripcion: ''
+                      descripcion: '',
+                      activa: true,
+                      heredarAlCierre: true
                     };
                     setTempNovedades([...tempNovedades, newNovedad]);
                   }}
@@ -1041,12 +1070,11 @@ const AdminPanel = ({ isOpen, onClose }) => {
         .config-modal {
           background: white;
           border-radius: 8px;
-          width: auto;
-          min-width: 500px;
-          max-width: 600px;
+          width: 700px;
+          max-width: 90vw;
           max-height: 80vh;
           overflow-y: auto;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .modal-header {
@@ -1056,12 +1084,12 @@ const AdminPanel = ({ isOpen, onClose }) => {
           padding: 20px;
           border-bottom: 1px solid #dee2e6;
           background: #f8f9fa;
-          border-radius: 8px 8px 0 0;
         }
 
         .modal-header h3 {
           margin: 0;
           color: #495057;
+          font-size: 1.2rem;
         }
 
         .modal-header button {
@@ -1081,7 +1109,7 @@ const AdminPanel = ({ isOpen, onClose }) => {
         }
 
         .modal-content {
-          padding: 20px 25px;
+          padding: 20px;
         }
 
         .config-list {
@@ -1110,6 +1138,12 @@ const AdminPanel = ({ isOpen, onClose }) => {
           box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
         }
 
+        .config-input:disabled {
+          background: #f8f9fa;
+          color: #6c757d;
+        }
+
+
         .modal-actions {
           display: flex;
           gap: 10px;
@@ -1126,7 +1160,6 @@ const AdminPanel = ({ isOpen, onClose }) => {
           border-radius: 4px;
           cursor: pointer;
           font-size: 14px;
-          transition: all 0.2s;
           min-width: 40px;
           height: 38px;
           display: flex;
@@ -1136,7 +1169,6 @@ const AdminPanel = ({ isOpen, onClose }) => {
 
         .btn-delete:hover {
           background: #c82333;
-          transform: scale(1.05);
         }
 
         .add-item-section {
@@ -1154,7 +1186,6 @@ const AdminPanel = ({ isOpen, onClose }) => {
           cursor: pointer;
           font-size: 14px;
           font-weight: 500;
-          transition: all 0.2s;
           display: flex;
           align-items: center;
           gap: 8px;
@@ -1162,8 +1193,26 @@ const AdminPanel = ({ isOpen, onClose }) => {
 
         .btn-add:hover {
           background: #218838;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+
+        /* Responsividad para pantallas pequeñas */
+        @media (max-width: 768px) {
+          .config-modal {
+            min-width: 95vw;
+            max-width: 95vw;
+            margin: 10px;
+          }
+          
+          .config-item {
+            flex-direction: column;
+            gap: 8px;
+            align-items: stretch;
+          }
+          
+          .modal-content {
+            padding: 20px 15px;
+          }
         }
       `}</style>
     </div>

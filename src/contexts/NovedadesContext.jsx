@@ -33,7 +33,8 @@ export const NovedadesProvider = ({ children }) => {
         const config = await getNovedadesConfig();
         if (config) {
           setNovedadesConfig(config);
-          console.log('Configuración de novedades cargada correctamente');
+          console.log('Configuración de novedades cargada correctamente:', config);
+          console.log('Número de novedades disponibles:', config.novedades?.length || 0);
         }
       } catch (error) {
         console.error('Error inicializando configuración de novedades:', error);

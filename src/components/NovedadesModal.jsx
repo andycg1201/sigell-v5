@@ -42,11 +42,14 @@ const NovedadesModal = ({
   useEffect(() => {
     if (isOpen) {
       console.log('NovedadesModal abierto para taxi:', taxiId);
+      console.log('Configuración de novedades recibida:', novedadesConfig);
+      console.log('Novedades disponibles:', novedadesDisponibles);
+      console.log('Número de novedades disponibles:', novedadesDisponibles.length);
     } else {
       // Limpiar estado optimista cuando se cierra el modal
       setOptimisticNovedades(new Set());
     }
-  }, [isOpen, taxiId]);
+  }, [isOpen, taxiId, novedadesConfig, novedadesDisponibles]);
 
   // Log solo si no hay novedades disponibles (una sola vez)
   useEffect(() => {
