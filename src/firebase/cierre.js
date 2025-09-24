@@ -45,10 +45,30 @@ export const marcarCierreCompletado = async (fecha) => {
       ultimoCierre: fecha,
       ultimaActualizacion: serverTimestamp()
     });
-    
+
     console.log(`Cierre completado para la fecha: ${fecha}`);
   } catch (error) {
     console.error('Error marcando cierre completado:', error);
+    throw error;
+  }
+};
+
+// Función para resetear el estado de cierre (para testing)
+export const resetearEstadoCierre = async () => {
+  try {
+    const docRef = doc(db, 'sistema_control', 'cierre_diario');
+    const ayer = new Date();
+    ayer.setDate(ayer.getDate() - 1);
+    const fechaAyer = ayer.toISOString().split('T')[0];
+
+    await setDoc(docRef, {
+      ultimoCierre: fechaAyer,
+      ultimaActualizacion: serverTimestamp()
+    });
+
+    console.log(`Estado de cierre reseteado a fecha anterior: ${fechaAyer}`);
+  } catch (error) {
+    console.error('Error reseteando estado de cierre:', error);
     throw error;
   }
 };
@@ -96,21 +116,35 @@ export const archivarPedidosDelDia = async (fecha) => {
     console.log(`Total de pedidos a procesar: ${pedidosDelDia.length}`);
     
     if (pedidosDelDia.length > 0) {
-      // Crear documento de archivo para la fecha
+      // Archivar primero
       const archivoRef = doc(db, 'pedidos_archivados', fecha);
       console.log(`Creando archivo en: pedidos_archivados/${fecha}`);
-      
-      batch.set(archivoRef, {
+
+      await setDoc(archivoRef, {
         fecha,
         pedidos: pedidosDelDia,
         totalPedidos: pedidosDelDia.length,
         fechaArchivado: serverTimestamp()
       });
-      
-      console.log('Ejecutando batch de operaciones...');
-      // Ejecutar todas las operaciones (eliminar pedidos + crear archivo)
-      await batch.commit();
-      
+
+      console.log(`✅ ${pedidosDelDia.length} pedidos archivados en ${fecha}`);
+
+      // Eliminar en lotes de 499 para evitar límite de batch
+      const batchSize = 499;
+      for (let i = 0; i < pedidosDelDia.length; i += batchSize) {
+        const batch = writeBatch(db);
+        const end = Math.min(i + batchSize, pedidosDelDia.length);
+
+        for (let j = i; j < end; j++) {
+          const pedidoRef = doc(db, 'pedidos', pedidosDelDia[j].id);
+          batch.delete(pedidoRef);
+        }
+
+        console.log(`Ejecutando batch de eliminación ${Math.floor(i / batchSize) + 1}...`);
+        await batch.commit();
+        console.log(`✅ Eliminados ${end - i} pedidos`);
+      }
+
       console.log(`✅ ${pedidosDelDia.length} pedidos archivados y eliminados de la vista actual`);
     } else {
       console.log('No hay pedidos para archivar');
@@ -158,26 +192,31 @@ export const resetearContadores = async () => {
 
 
 // Función principal de cierre del día
-export const ejecutarCierreDelDia = async (fechaCierre) => {
+export const ejecutarCierreDelDia = async (fechaCierre, forzar = false) => {
   try {
-    // VERIFICACIÓN DE SEGURIDAD: Solo permitir cierre en ventana de medianoche
-    const ahora = new Date();
-    const hora = ahora.getHours();
-    const minuto = ahora.getMinutes();
-    const segundo = ahora.getSeconds();
-    
-    // Solo permitir entre 00:00:00 y 00:00:30
-    if (hora !== 0 || minuto !== 0 || segundo > 30) {
-      console.error(`❌ BLOQUEANDO CIERRE FUERA DE HORA: ${hora}:${minuto}:${segundo} - Solo se permite entre 00:00:00-00:00:30`);
-      throw new Error(`Cierre bloqueado: Solo se permite ejecutar entre 00:00:00 y 00:00:30. Hora actual: ${hora}:${minuto}:${segundo}`);
+    // VERIFICACIÓN DE SEGURIDAD: Solo permitir cierre en ventana de medianoche (a menos que se fuerce)
+    if (!forzar) {
+      const ahora = new Date();
+      const hora = ahora.getHours();
+      const minuto = ahora.getMinutes();
+      const segundo = ahora.getSeconds();
+
+      // Solo permitir entre 00:00:00 y 00:00:30
+      if (hora !== 0 || minuto !== 0 || segundo > 30) {
+        console.error(`❌ BLOQUEANDO CIERRE FUERA DE HORA: ${hora}:${minuto}:${segundo} - Solo se permite entre 00:00:00-00:00:30`);
+        throw new Error(`Cierre bloqueado: Solo se permite ejecutar entre 00:00:00 y 00:00:30. Hora actual: ${hora}:${minuto}:${segundo}`);
+      }
+
+      console.log(`✅ VERIFICACIÓN DE HORA PASADA: ${hora}:${minuto}:${segundo}`);
+    } else {
+      console.log(`🔧 CIERRE FORZADO - IGNORANDO RESTRICCIONES DE HORA`);
     }
-    
+
     console.log(`=== INICIANDO CIERRE DEL DÍA: ${fechaCierre} ===`);
-    console.log(`✅ VERIFICACIÓN DE HORA PASADA: ${hora}:${minuto}:${segundo}`);
     
-    // 1. Archivar pedidos del día (usar la fecha actual, no la fecha pasada)
+    // 1. Archivar pedidos del día (usar la fecha del último cierre)
     const hoy = new Date().toISOString().split('T')[0];
-    const pedidosArchivados = await archivarPedidosDelDia(hoy);
+    const pedidosArchivados = await archivarPedidosDelDia(fechaCierre);
     
     // 2. Resetear contadores
     await resetearContadores();
@@ -190,12 +229,12 @@ export const ejecutarCierreDelDia = async (fechaCierre) => {
     console.log(`- Contadores reseteados`);
     console.log(`- Fecha de cierre: ${fechaCierre}`);
     console.log(`- Fecha actual: ${hoy}`);
-    console.log(`- Pedidos archivados con fecha: ${hoy}`);
+    console.log(`- Pedidos archivados con fecha: ${fechaCierre}`);
     console.log(`- NOTA: Novedades e inhabilitaciones se mantienen hasta que el operador las quite manualmente`);
     
     return {
       pedidosArchivados,
-      fechaCierre: hoy
+      fechaCierre: fechaCierre
     };
   } catch (error) {
     console.error('Error ejecutando cierre del día:', error);
@@ -392,26 +431,15 @@ export const limpiarPedidosHuerfanos = async () => {
   }
 };
 
-// Función para forzar cierre (solo para testing)
+// Función para forzar cierre (manual)
 export const forzarCierreDelDia = async () => {
   try {
-    // VERIFICACIÓN DE SEGURIDAD: Solo permitir forzar cierre en ventana segura
+    console.log('=== FORZANDO CIERRE DEL DÍA ===');
     const ahora = new Date();
     const hora = ahora.getHours();
     const minuto = ahora.getMinutes();
     const segundo = ahora.getSeconds();
-    
-    // Solo permitir entre 00:00:00 y 00:00:30, o entre 23:59:30 y 23:59:59
-    const enVentanaSegura = (hora === 0 && minuto === 0 && segundo <= 30) || 
-                           (hora === 23 && minuto === 59 && segundo >= 30);
-    
-    if (!enVentanaSegura) {
-      console.error(`❌ BLOQUEANDO CIERRE FORZADO FUERA DE HORA: ${hora}:${minuto}:${segundo} - Solo se permite en ventanas seguras`);
-      throw new Error(`Cierre forzado bloqueado: Solo se permite entre 00:00:00-00:00:30 o 23:59:30-23:59:59. Hora actual: ${hora}:${minuto}:${segundo}`);
-    }
-    
-    console.log('=== FORZANDO CIERRE DEL DÍA ===');
-    console.log(`✅ VERIFICACIÓN DE HORA PASADA: ${hora}:${minuto}:${segundo}`);
+    console.log(`Hora actual: ${hora}:${minuto}:${segundo}`);
     
     // Obtener todos los pedidos actuales
     const pedidosRef = collection(db, 'pedidos');
@@ -430,20 +458,35 @@ export const forzarCierreDelDia = async () => {
     });
     
     if (pedidosDelDia.length > 0) {
-      // Usar fecha de HOY para el archivo (corregido)
+      // Usar fecha de HOY para el archivo
       const hoy = new Date().toISOString().split('T')[0];
-      
+
+      // Archivar primero
       const archivoRef = doc(db, 'pedidos_archivados', hoy);
-      batch.set(archivoRef, {
+      await setDoc(archivoRef, {
         fecha: hoy,
         pedidos: pedidosDelDia,
         totalPedidos: pedidosDelDia.length,
         fechaArchivado: serverTimestamp(),
         esCierreForzado: true
       });
-      
-      await batch.commit();
+
       console.log(`✅ ${pedidosDelDia.length} pedidos archivados forzadamente en ${hoy}`);
+
+      // Eliminar en lotes
+      const batchSize = 499;
+      for (let i = 0; i < pedidosDelDia.length; i += batchSize) {
+        const batch = writeBatch(db);
+        const end = Math.min(i + batchSize, pedidosDelDia.length);
+
+        for (let j = i; j < end; j++) {
+          const pedidoRef = doc(db, 'pedidos', pedidosDelDia[j].id);
+          batch.delete(pedidoRef);
+        }
+
+        await batch.commit();
+        console.log(`✅ Eliminados ${end - i} pedidos forzadamente`);
+      }
     }
     
     // Resetear contadores
@@ -478,10 +521,8 @@ export const limpiarTodosLosPedidos = async () => {
       console.log('No hay pedidos para limpiar');
       return { pedidosLimpiados: 0 };
     }
-    
+
     const pedidosParaLimpiar = [];
-    const batch = writeBatch(db);
-    
     querySnapshot.forEach((doc) => {
       const pedido = { id: doc.id, ...doc.data() };
       const isBaseOrder = !pedido.hora;
@@ -492,48 +533,61 @@ export const limpiarTodosLosPedidos = async () => {
         domicilio: pedido.domicilio,
         unidad: pedido.unidad
       });
-      batch.delete(doc.ref);
     });
-    
-    // Usar fecha de HOY para el archivo (corregido)
+
+    // Usar fecha de HOY para el archivo
     const hoy = new Date().toISOString().split('T')[0];
-    
+
     console.log(`Archivando en fecha: ${hoy}`);
-    
+
     // Verificar si ya existe un archivo para hoy
     const archivoRef = doc(db, 'pedidos_archivados', hoy);
     const archivoSnap = await getDoc(archivoRef);
-    
+
     if (archivoSnap.exists()) {
       // Si ya existe, agregar los pedidos al archivo existente
       const archivoExistente = archivoSnap.data();
       const pedidosCombinados = [...archivoExistente.pedidos, ...pedidosParaLimpiar];
-      
-      batch.update(archivoRef, {
+
+      await updateDoc(archivoRef, {
         pedidos: pedidosCombinados,
         totalPedidos: pedidosCombinados.length,
         fechaArchivado: serverTimestamp(),
         limpiezaEmergencia: true,
         pedidosLimpiezaEmergencia: pedidosParaLimpiar.length
       });
-      
+
       console.log(`✅ ${pedidosParaLimpiar.length} pedidos agregados al archivo existente de ${hoy}`);
     } else {
       // Si no existe, crear nuevo archivo
-      batch.set(archivoRef, {
+      await setDoc(archivoRef, {
         fecha: hoy,
         pedidos: pedidosParaLimpiar,
         totalPedidos: pedidosParaLimpiar.length,
         fechaArchivado: serverTimestamp(),
         limpiezaEmergencia: true
       });
-      
+
       console.log(`✅ ${pedidosParaLimpiar.length} pedidos archivados en nuevo archivo de ${hoy}`);
     }
-    
-    console.log('Ejecutando batch de operaciones...');
-    await batch.commit();
-    console.log('✅ Batch ejecutado exitosamente');
+
+    // Eliminar en lotes
+    const batchSize = 499;
+    for (let i = 0; i < pedidosParaLimpiar.length; i += batchSize) {
+      const batch = writeBatch(db);
+      const end = Math.min(i + batchSize, pedidosParaLimpiar.length);
+
+      for (let j = i; j < end; j++) {
+        const pedidoRef = doc(db, 'pedidos', pedidosParaLimpiar[j].id);
+        batch.delete(pedidoRef);
+      }
+
+      console.log(`Ejecutando batch de eliminación ${Math.floor(i / batchSize) + 1}...`);
+      await batch.commit();
+      console.log(`✅ Eliminados ${end - i} pedidos`);
+    }
+
+    console.log('✅ Limpieza completada exitosamente');
     
     return {
       pedidosLimpiados: pedidosParaLimpiar.length,

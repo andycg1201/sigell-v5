@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { 
+import {
   verificarCierreDelDia,
   ejecutarCierreDelDia,
   getPedidosArchivados,
   getFechasArchivadas,
   debugEstadoPedidos,
   limpiarPedidosHuerfanos,
-  limpiarTodosLosPedidos
+  limpiarTodosLosPedidos,
+  resetearEstadoCierre
 } from '../firebase/cierre';
 
 const CierreContext = createContext();
@@ -160,13 +161,17 @@ export const CierreProvider = ({ children }) => {
           fechaCache: null
         });
         
+        // Marcar como ejecutado en localStorage
+        const cierreKey = 'cierreEjecutado_' + new Date().toISOString().split('T')[0];
+        localStorage.setItem(cierreKey, 'true');
+
         // Actualizar estado
         setEstadoCierre(prev => ({
           ...prev,
           ...estado,
           procesando: false
         }));
-        
+
         console.log('=== CIERRE AUTOMÁTICO COMPLETADO ===', resultado);
         return resultado;
       } else {
@@ -283,7 +288,21 @@ export const CierreProvider = ({ children }) => {
 
   // Verificar estado del cierre al inicializar
   useEffect(() => {
-    verificarEstadoCierre().catch(error => {
+    verificarEstadoCierre().then((estado) => {
+      // Verificar si necesitamos ejecutar cierre porque la app se inició después de medianoche
+      const now = new Date();
+      const currentDate = now.toISOString().split('T')[0];
+      const cierreKey = 'cierreEjecutado_' + currentDate;
+
+      if (estado && estado.necesitaCierre && now.getHours() >= 0 && !localStorage.getItem(cierreKey)) {
+        console.log('Cierre no ejecutado hoy, ejecutando ahora...');
+        localStorage.setItem(cierreKey, 'true');
+        verificarCierreAutomatico().catch(error => {
+          console.error('Error en cierre automático al iniciar, removiendo flag para reintentar');
+          localStorage.removeItem(cierreKey);
+        });
+      }
+    }).catch(error => {
       console.error('Error verificando estado inicial del cierre:', error);
     });
   }, [verificarEstadoCierre]);
@@ -349,15 +368,55 @@ export const CierreProvider = ({ children }) => {
     }
   }, [verificarEstadoCierre, cacheLocal, estadoCierre]);
 
+  // Función para forzar cierre manual desde la app
+  const forzarCierreManual = useCallback(async () => {
+    try {
+      console.log('🔧 Forzando cierre manual desde la aplicación...');
+
+      // Usar las funciones existentes de cierre.js pero sin verificación de hora
+      const hoy = new Date().toISOString().split('T')[0];
+      console.log(`Fecha de cierre: ${hoy}`);
+
+      // Ejecutar cierre directamente sin restricciones de hora
+      const resultado = await ejecutarCierreDelDia(hoy, true); // Parámetro para forzar
+
+      console.log('✅ Cierre forzado completado desde app:', resultado);
+
+      // Actualizar estado
+      await verificarEstadoCierre(true); // Forzar consulta
+
+      return resultado;
+    } catch (error) {
+      console.error('❌ Error forzando cierre desde app:', error);
+      throw error;
+    }
+  }, [verificarEstadoCierre]);
+
+  // Función para resetear estado de cierre
+  const resetearEstadoCierreContext = useCallback(async () => {
+    try {
+      await resetearEstadoCierre();
+      console.log('Estado de cierre reseteado');
+
+      // Actualizar estado después del reseteo
+      await verificarEstadoCierre(true); // Forzar consulta
+
+      return true;
+    } catch (error) {
+      console.error('Error reseteando estado de cierre:', error);
+      throw error;
+    }
+  }, [verificarEstadoCierre]);
+
   // Función para limpiar pedidos huérfanos
   const limpiarHuerfanos = useCallback(async () => {
     try {
       const resultado = await limpiarPedidosHuerfanos();
       console.log('Limpieza de huérfanos completada:', resultado);
-      
+
       // Actualizar estado después de la limpieza
       await verificarEstadoCierre();
-      
+
       return resultado;
     } catch (error) {
       console.error('Error limpiando huérfanos:', error);
@@ -394,7 +453,9 @@ export const CierreProvider = ({ children }) => {
     debugEstado,
     debugCierreAutomatico,
     limpiarHuerfanos,
-    limpiarTodos
+    limpiarTodos,
+    forzarCierreManual,
+    resetearEstadoCierreContext
   };
 
   return (

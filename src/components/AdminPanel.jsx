@@ -17,7 +17,7 @@ const AdminPanel = ({ isOpen, onClose }) => {
   const { totalTaxis, taxiBloqueados, updateConfig } = useTaxis();
   const { bases, updateConfig: updateBasesConfig } = useBases();
   const { novedadesConfig, updateConfig: updateNovedadesConfig } = useNovedades();
-  const { estadoCierre, ejecutarCierreManual, verificarCierreAutomatico, limpiarCache, debugEstado, debugCierreAutomatico, limpiarHuerfanos, limpiarTodos } = useCierre();
+  const { estadoCierre, ejecutarCierreManual, verificarCierreAutomatico, limpiarCache, debugEstado, debugCierreAutomatico, limpiarHuerfanos, limpiarTodos, forzarCierreManual, resetearEstadoCierreContext } = useCierre();
   
   const [activeTab, setActiveTab] = useState('sistema');
   const [newTotal, setNewTotal] = useState(totalTaxis);
@@ -153,6 +153,38 @@ const AdminPanel = ({ isOpen, onClose }) => {
         alert('Todos los pedidos han sido limpiados');
       } catch (error) {
         alert('Error limpiando todos los pedidos');
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleForzarCierreManual = async () => {
+    if (confirm('¿Estás seguro de forzar el cierre manual? Esto archivará todos los pedidos actuales.')) {
+      setLoading(true);
+      try {
+        await forzarCierreManual();
+        alert('Cierre forzado completado exitosamente');
+        // Recargar la página para ver los cambios
+        window.location.reload();
+      } catch (error) {
+        alert('Error forzando cierre manual');
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleResetearEstadoCierre = async () => {
+    if (confirm('¿Estás seguro de resetear el estado de cierre? Esto permitirá ejecutar el cierre nuevamente.')) {
+      setLoading(true);
+      try {
+        await resetearEstadoCierreContext();
+        alert('Estado de cierre reseteado exitosamente');
+      } catch (error) {
+        alert('Error reseteando estado de cierre');
         console.error(error);
       } finally {
         setLoading(false);
@@ -307,13 +339,29 @@ const AdminPanel = ({ isOpen, onClose }) => {
                       >
                         {loading ? '🔄 Verificando...' : '🔍 Verificar Cierre Auto'}
                       </button>
-                      <button 
+                      <button
                         onClick={handleResetearContadores}
                         disabled={loading}
                         className="btn btn-warning"
                         style={{ marginTop: '8px' }}
                       >
                         {loading ? '🔄 Reseteando...' : '🔢 Resetear Contadores'}
+                      </button>
+                      <button
+                        onClick={handleForzarCierreManual}
+                        disabled={loading}
+                        className="btn btn-danger"
+                        style={{ marginTop: '8px' }}
+                      >
+                        {loading ? '🔧 Forzando...' : '🔧 Forzar Cierre Manual'}
+                      </button>
+                      <button
+                        onClick={handleResetearEstadoCierre}
+                        disabled={loading}
+                        className="btn btn-warning"
+                        style={{ marginTop: '8px' }}
+                      >
+                        {loading ? '🔄 Reseteando...' : '🔄 Resetear Estado Cierre'}
                       </button>
                     </div>
                   </div>
